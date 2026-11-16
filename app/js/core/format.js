@@ -1,0 +1,111 @@
+// Display text. Pure functions; no DOM.
+import { isRunning, sideTotals } from './events.js';
+import { addDays } from './days.js';
+
+const MIN = 60000;
+
+export const ML_PER_OZ = 29.5735;
+export const QUICK_AMOUNTS = { ml: [30, 60, 90, 120], oz: [1, 2, 3, 4] };
+export const STEP = { ml: 10, oz: 0.5 };
+
+export function mlToOz(ml) {
+  return ml / ML_PER_OZ;
+}
+
+export function ozToMl(oz) {
+  return Math.round(oz * ML_PER_OZ);
+}
+
+export function formatAmount(ml, unit) {
+  if (unit === 'oz') return `${Number(mlToOz(ml).toFixed(1))} oz`;
+  return `${Math.round(ml)} ml`;
+}
+
+export function formatDuration(ms) {
+  const totalMin = Math.floor(Math.max(0, ms) / MIN);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+export function formatClock(ms) {
+  const totalSec = Math.floor(Math.max(0, ms) / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+const SIDE_NAME = { L: 'left', R: 'right' };
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export function formatStatus(status, unit) {
+  if (status.feeding) {
+    const { side, sideMs } = status.feeding;
+    return side ? `Feeding · ${capitalize(SIDE_NAME[side])} ${formatClock(sideMs)}` : 'Feeding · paused';
+  }
+  if (status.asleepMs !== null) return `Asleep ${formatDuration(status.asleepMs)}`;
+
+  const parts = [];
+  const feed = status.lastFeed;
+  if (feed) {
+    const when = feed.agoMs < MIN ? 'just now' : `${formatDuration(feed.agoMs)} ago`;
+    let detail = '';
+    if (feed.kind === 'breast' && feed.side) detail = ` (${SIDE_NAME[feed.side]})`;
+    if (feed.kind === 'bottle') detail = ` (bottle ${formatAmount(feed.ml, unit)})`;
+    parts.push(`Last fed ${when}${detail}`);
+  }
+  if (status.nextSide) parts.push(`next side: ${SIDE_NAME[status.nextSide]}`);
+  if (status.awakeMs !== null) parts.push(`awake ${formatDuration(status.awakeMs)}`);
+  return parts.length ? capitalize(parts.join(' · ')) : 'Nothing logged yet';
+}
+
+const DIAPER_TEXT = { wet: 'wet', solid: 'solid', both: 'wet + solid' };
+
+export function formatEventSummary(ev, unit, now) {
+  switch (ev.type) {
+    case 'breast': {
+      if (isRunning(ev)) return 'Breast · feeding now';
+      const totals = sideTotals(ev, now);
+      const sides = ['L', 'R']
+        .filter((s) => totals[s] > 0)
+        .map((s) => `${s} ${formatDuration(totals[s])}`);
+      return ['Breast', ...(sides.length ? [sides.join(' ')] : [])].join(' · ');
+    }
+    case 'bottle':
+      return `Bottle · ${formatAmount(ev.ml, unit)}`;
+    case 'diaper':
+      return `Diaper · ${DIAPER_TEXT[ev.diaper]}`;
+    case 'sleep':
+      return isRunning(ev) ? 'Sleep · asleep now' : `Sleep · ${formatDuration(ev.end - ev.start)}`;
+    default:
+      return ev.type;
+  }
+}
+
+export function formatTotals(totals, unit) {
+  return [
+    `${totals.feeds} ${totals.feeds === 1 ? 'feed' : 'feeds'}`,
+    `${formatDuration(totals.breastMs)} breast`,
+    `${formatAmount(totals.bottleMl, unit)} bottle`,
+    `${formatDuration(totals.sleepMs)} sleep`,
+    `${totals.wet} wet`,
+    `${totals.solid} solid`,
+  ];
+}
+
+export function formatDayLabel(dayStartMs, todayStartMs) {
+  if (dayStartMs === todayStartMs) return 'Today';
+  if (dayStartMs === addDays(todayStartMs, -1)) return 'Yesterday';
+  return new Date(dayStartMs).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function formatTime(ms) {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
