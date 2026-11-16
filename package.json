@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "TZ=America/New_York node --test \"test/core/**/*.test.js\" \"test/data/**/*.test.js\"",
+    "test": "TZ=America/New_York node --test \"test/core/**/*.test.js\" \"test/data/**/*.test.js\" \"test/ui/**/*.test.js\"",
     "test:emulator": "firebase emulators:exec --only firestore --project demo-bebetrack \"node --test --test-concurrency=1 'test/emulator/**/*.test.js'\"",
     "emulator": "firebase emulators:start --only firestore --project demo-bebetrack",
     "serve": "node scripts/serve.mjs app 5173"
