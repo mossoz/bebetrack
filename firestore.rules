@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Bebetrack serves one family per Firebase project.
+//
+// The first "Start new" writes meta/claim = { h: base64(SHA-256(spaceId)) }.
+// From then on, only the claimed space can be read or written. Every entry is
+// encrypted on the phone, so the server only ever sees { v, iv, ct, at }.
+// To start over, delete meta/claim in the Firebase console (see README).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function claimPath() {
+      return /databases/$(database)/documents/meta/claim;
+    }
+
+    function ownsSpace(spaceId) {
+      return exists(claimPath())
+        && get(claimPath()).data.h == hashing.sha256(spaceId).toBase64();
+    }
+
+    function validRecord() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['v', 'iv', 'ct', 'at'])
+        && d.keys().hasAll(['v', 'iv', 'ct', 'at'])
+        && d.v == 1
+        && d.iv is string && d.iv.size() == 16
+        && d.ct is string && d.ct.size() > 0 && d.ct.size() <= 4096
+        && d.at == request.time;
+    }
+
+    match /meta/claim {
+      allow create: if request.resource.data.keys().hasOnly(['h'])
+        && request.resource.data.h is string
+        && request.resource.data.h.size() == 44;
+      allow read, update, delete: if false;
+    }
+
+    match /spaces/{spaceId}/events/{eventId} {
+      allow get, list: if ownsSpace(spaceId);
+      allow create, update: if ownsSpace(spaceId)
+        && eventId.matches('^[0-9a-f-]{36}$')
+        && validRecord();
+      allow delete: if false;
+    }
+  }
+}

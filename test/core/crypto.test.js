@@ -44,7 +44,8 @@ test('pinned vector, production iterations', async () => {
   const s = await deriveSecrets('acid acorn acre');
   assert.equal(s.keyB64, 'iN7ukmDQ8a2zBPoews0KEo2uhfM32W4XvTUVemCcMpk=');
   assert.equal(s.spaceId, '0Syggp5DidotV1Je4Y7WkyFn9lxU375je2LC-F8KpMg');
-  assert.equal(s.spaceHash, 'J52J0JZynZEbn+OojmGAIjU/ed7luTAKhIlmLeASMLE=');
+  // base64url with padding: the encoding Firestore rules' Bytes.toBase64() produces.
+  assert.equal(s.spaceHash, 'J52J0JZynZEbn-OojmGAIjU_ed7luTAKhIlmLeASMLE=');
 });
 
 test('different passphrases differ', async () => {

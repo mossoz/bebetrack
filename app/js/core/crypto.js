@@ -59,13 +59,11 @@ export async function deriveSecrets(passphrase, { iterations = PBKDF2_ITERATIONS
   );
   const keyB64 = toBase64(bits.slice(0, 32));
   const spaceId = toBase64Url(bits.slice(32, 64));
+  // The claim record stores this hash. Firestore rules compute
+  // hashing.sha256(spaceId).toBase64(), which is base64url *with* padding.
   const digest = await crypto.subtle.digest('SHA-256', utf8.encode(spaceId));
-  return {
-    key: await importKey(keyB64),
-    keyB64,
-    spaceId,
-    spaceHash: toBase64(new Uint8Array(digest)),
-  };
+  const spaceHash = toBase64(new Uint8Array(digest)).replace(/\+/g, '-').replace(/\//g, '_');
+  return { key: await importKey(keyB64), keyB64, spaceId, spaceHash };
 }
 
 export async function encryptEvent(key, event) {
