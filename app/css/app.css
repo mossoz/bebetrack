@@ -1,0 +1,249 @@
+/* Bebetrack: dark and dim by default, so it never lights up a dark room. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0d12;
+  --surface: #12151d;
+  --surface-2: #191d28;
+  --surface-3: #212636;
+  --line: #242a3a;
+  --text: #c3c7d1;
+  --text-strong: #d9dce3;
+  --muted: #868d9d;
+  --faint: #5b6172;
+  --accent: #d4a15e;
+  --accent-ink: #1b1407;
+  --danger: #d98476;
+  --breast: #cf8fa3;
+  --bottle: #82a9cc;
+  --sleep: #a39ad6;
+  --diaper: #9fbf88;
+  --radius: 18px;
+  --tap: 56px;
+  --gutter: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bar-height: calc(88px + var(--safe-bottom));
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100dvh;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.boot {
+  padding: 40px var(--gutter);
+  color: var(--faint);
+  text-align: center;
+}
+
+.icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Buttons and fields ---------- */
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn:active {
+  background: var(--surface-3);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+}
+
+.btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn.primary:active {
+  filter: brightness(0.9);
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.danger {
+  color: var(--danger);
+  background: transparent;
+}
+
+.link {
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.field {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 20px; /* 16px or more keeps iOS from zooming in */
+}
+
+.field:focus,
+.btn:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.row > .btn {
+  width: auto;
+  flex: 1;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--danger);
+}
+
+.warning {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ---------- Setup ---------- */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(24px + var(--safe-top)) var(--gutter) calc(24px + var(--safe-bottom));
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 30px;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  color: var(--accent);
+}
+
+.setup h2 {
+  margin: 8px 0 0;
+  color: var(--text-strong);
+  font-size: 22px;
+}
+
+.setup p {
+  margin: 0;
+}
+
+.lede {
+  font-size: 19px;
+}
+
+.passphrase {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-strong);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-spacing: 0.25em;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,77 @@
+import { firebaseConfig, LOCAL_CONFIG, EMULATOR, isLocal, isConfigured } from './config.js';
+import { importKey } from './core/crypto.js';
+import { openDb, writeRecord, loadCached, listen } from './data/remote.js';
+import { EventStore } from './data/store.js';
+import { startSync } from './data/sync.js';
+import { createSession } from './data/session.js';
+import { renderSetup, renderNotConfigured } from './ui/setup.js';
+import { h, clear } from './ui/dom.js';
+
+const root = document.getElementById('app');
+const session = createSession();
+
+let db = null;
+function getDb() {
+  if (!db) {
+    db = isLocal
+      ? openDb({ config: LOCAL_CONFIG, emulator: EMULATOR })
+      : openDb({ config: firebaseConfig });
+  }
+  return db;
+}
+
+async function start(saved) {
+  const key = await importKey(saved.keyB64);
+  const database = getDb();
+  const { spaceId } = saved;
+  const store = new EventStore({ key, write: (record) => writeRecord(database, spaceId, record) });
+  if (isLocal) window.__bebetrack = { store };
+
+  const onError = (e) => console.warn('bebetrack: sync problem', e);
+  const sync = await startSync({
+    load: () => loadCached(database, spaceId),
+    listen: (since, onRecords, onListenError) => listen(database, spaceId, since, onRecords, onListenError),
+    store,
+    onError,
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') sync.restart();
+  });
+
+  clear(root);
+  root.append(h('section', { class: 'setup' }, h('p', { class: 'lede' }, 'Unlocked. The home screen comes next.')));
+}
+
+function showSetup() {
+  renderSetup(root, {
+    db: getDb(),
+    onReady(data) {
+      session.save(data);
+      start(data);
+    },
+  });
+}
+
+async function boot() {
+  if (!isConfigured) {
+    renderNotConfigured(root);
+    return;
+  }
+  const saved = session.load();
+  if (!saved) {
+    showSetup();
+    return;
+  }
+  try {
+    await start(saved);
+  } catch (e) {
+    console.error('bebetrack: could not open the saved log', e);
+    showSetup();
+  }
+}
+
+if (!isLocal && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('bebetrack: no offline support', e));
+}
+
+boot();
