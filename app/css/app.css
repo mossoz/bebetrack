@@ -589,11 +589,37 @@ dialog#sheet::backdrop {
 }
 
 .readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
   color: var(--bottle);
-  font-size: 44px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.readout-input {
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 2px dashed var(--line);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-size: 44px;
+  font-weight: inherit;
   text-align: center;
+}
+
+.readout-input:focus {
+  border-bottom-color: var(--bottle);
+  outline: none;
+}
+
+.readout-unit {
+  font-size: 22px;
 }
 
 .step {

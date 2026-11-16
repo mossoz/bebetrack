@@ -37,10 +37,12 @@ test('diaper', () => {
   assert.match(d.id, UUID);
 });
 
-test('bottle rounds ml', () => {
-  const b = makeBottle(89.6, T);
-  assert.equal(b.ml, 90);
+test('bottle keeps ml to one decimal', () => {
+  const b = makeBottle(30.5, T);
+  assert.equal(b.ml, 30.5);
   assert.equal(b.end, T);
+  assert.equal(makeBottle(30.24, T).ml, 30.2);
+  assert.equal(makeBottle(89.96, T).ml, 90);
 });
 
 test('breast timer flow', () => {

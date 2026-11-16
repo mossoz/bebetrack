@@ -7,6 +7,7 @@ import {
   mlToOz,
   ozToMl,
   formatAmount,
+  parseAmount,
   formatDuration,
   formatClock,
   formatEventSummary,
@@ -42,6 +43,28 @@ test('amounts', () => {
   assert.equal(ozToMl(4), 118);
   assert.equal(formatAmount(ozToMl(4), 'oz'), '4 oz');
   assert.ok(Math.abs(mlToOz(ML_PER_OZ * 2) - 2) < 1e-9);
+});
+
+test('ml amounts show one decimal when there is one', () => {
+  assert.equal(formatAmount(30.5, 'ml'), '30.5 ml');
+  assert.equal(formatAmount(30.2, 'ml'), '30.2 ml');
+  assert.equal(formatAmount(30.2 + 30.1, 'ml'), '60.3 ml');
+  assert.equal(formatAmount(120, 'ml'), '120 ml');
+});
+
+test('parseAmount reads a typed amount', () => {
+  assert.equal(parseAmount('30.5'), 30.5);
+  assert.equal(parseAmount('30,5'), 30.5);
+  assert.equal(parseAmount(' 30.25 '), 30.3);
+  assert.equal(parseAmount('90'), 90);
+  assert.equal(parseAmount('90.'), 90);
+  assert.equal(parseAmount('.5'), 0.5);
+});
+
+test('parseAmount rejects anything that is not a positive amount', () => {
+  for (const bad of ['', ' ', 'abc', '0', '0.0', '0.04', '-5', '30.5.1', '1e3', '30 ml']) {
+    assert.equal(parseAmount(bad), null, bad);
+  }
 });
 
 test('formatDuration', () => {

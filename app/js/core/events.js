@@ -4,7 +4,7 @@
 //   id, type: 'breast' | 'bottle' | 'sleep' | 'diaper',
 //   start: ms, end: ms | null,              // null = still running (breast, sleep)
 //   sides?: [{ side: 'L' | 'R', start, end | null }],   // breast only
-//   ml?: number,                            // bottle only, integer
+//   ml?: number,                            // bottle only, to 0.1 ml
 //   diaper?: 'wet' | 'solid' | 'both',      // diaper only
 //   deleted: boolean, updatedAt: number     // updatedAt is stamped by EventStore.save
 // }
@@ -23,7 +23,7 @@ export function makeDiaper(kind, at) {
 }
 
 export function makeBottle(ml, at) {
-  return { ...base('bottle', at, at), ml: Math.round(ml) };
+  return { ...base('bottle', at, at), ml: Math.round(ml * 10) / 10 };
 }
 
 export function startBreast(side, at) {

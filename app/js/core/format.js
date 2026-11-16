@@ -18,7 +18,16 @@ export function ozToMl(oz) {
 
 export function formatAmount(ml, unit) {
   if (unit === 'oz') return `${Number(mlToOz(ml).toFixed(1))} oz`;
-  return `${Math.round(ml)} ml`;
+  return `${Number(ml.toFixed(1))} ml`;
+}
+
+// A typed amount such as "30.5" or "30,5", rounded to one decimal.
+// Returns null unless it is a plain positive number.
+export function parseAmount(text) {
+  const t = String(text).trim();
+  if (!/^(\d+([.,]\d*)?|[.,]\d+)$/.test(t)) return null;
+  const value = Math.round(Number(t.replace(',', '.')) * 10) / 10;
+  return value > 0 ? value : null;
 }
 
 export function formatDuration(ms) {

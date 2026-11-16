@@ -25,6 +25,7 @@ import {
   STEP,
   ozToMl,
   mlToOz,
+  parseAmount,
   formatClock,
   formatDuration,
   formatTime,
@@ -213,23 +214,52 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
     const unit = session.loadUnit();
     const startMl = event?.ml ?? latest('bottle')?.ml ?? 90;
     const toUnit = (ml) => (unit === 'oz' ? Math.round(mlToOz(ml) * 10) / 10 : ml);
-    let amount = toUnit(startMl);
+    let amount = toUnit(startMl); // null while the typed text is not an amount
     let changed = false;
-    const readout = h('output', { class: 'readout' });
-    const show = () => {
-      readout.textContent = `${amount} ${unit}`;
+    const error = h('p', { class: 'error', role: 'alert' });
+    // Tap the number to type an exact amount such as 30.5; − / + and the chips still work.
+    const input = h('input', {
+      class: 'readout-input',
+      type: 'text',
+      inputmode: 'decimal',
+      autocomplete: 'off',
+      enterkeyhint: 'done',
+      'aria-label': `Amount in ${unit}`,
+      value: String(amount),
+      onfocus: () => input.select(),
+      oninput: () => {
+        fit();
+        amount = parseAmount(input.value);
+        changed = true;
+        error.textContent = '';
+      },
+      onkeydown: (e) => {
+        if (e.key === 'Enter') input.blur();
+      },
+    });
+    const fit = () => {
+      input.style.width = `${Math.max(2, input.value.length) + 0.5}ch`;
     };
+    fit();
+    const readout = h('label', { class: 'readout' }, input, h('span', { class: 'readout-unit' }, unit));
     const set = (value) => {
-      amount = Math.max(STEP[unit], Math.round(value * 10) / 10);
+      const next = Math.round(value * 10) / 10;
+      if (!(next > 0)) return;
+      amount = next;
       changed = true;
-      show();
+      input.value = String(amount);
+      fit();
+      error.textContent = '';
     };
-    show();
 
     const time = timeField('Time', event?.start ?? Date.now());
-    const error = h('p', { class: 'error', role: 'alert' });
     const submit = async () => {
-      const ml = !changed ? startMl : unit === 'oz' ? ozToMl(amount) : Math.round(amount);
+      if (amount === null) {
+        error.textContent = `Enter an amount, like ${unit === 'oz' ? '2.5' : '30.5'}.`;
+        input.focus();
+        return;
+      }
+      const ml = !changed ? startMl : unit === 'oz' ? ozToMl(amount) : amount;
       const at = fromLocalInput(time.input.value);
       if (at === null) {
         error.textContent = 'Pick a time.';
@@ -248,9 +278,9 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       h(
         'div',
         { class: 'amount' },
-        h('button', { class: 'step big', type: 'button', 'aria-label': 'Less', onclick: () => set(amount - STEP[unit]) }, '−'),
+        h('button', { class: 'step big', type: 'button', 'aria-label': 'Less', onclick: () => set((amount ?? 0) - STEP[unit]) }, '−'),
         readout,
-        h('button', { class: 'step big', type: 'button', 'aria-label': 'More', onclick: () => set(amount + STEP[unit]) }, '+'),
+        h('button', { class: 'step big', type: 'button', 'aria-label': 'More', onclick: () => set((amount ?? 0) + STEP[unit]) }, '+'),
       ),
       h(
         'div',
