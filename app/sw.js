@@ -29,6 +29,7 @@ const PRECACHE = [
   './js/data/store.js',
   './js/data/sync.js',
   './js/ui/dom.js',
+  './js/ui/home.js',
   './js/ui/icons.js',
   './js/ui/setup.js',
   'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js',

@@ -247,3 +247,236 @@ button {
   word-spacing: 0.25em;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Home ---------- */
+
+.home {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: var(--tap) 1fr var(--tap) var(--tap);
+  align-items: center;
+  gap: 4px;
+  padding: calc(6px + var(--safe-top)) 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.day-label {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--muted);
+}
+
+.icon-btn:active {
+  background: var(--surface-2);
+}
+
+.icon-btn:disabled {
+  opacity: 0.25;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px var(--gutter) calc(var(--bar-height) + 16px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.status {
+  display: block;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-strong);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.status[data-state='feeding'] {
+  border-color: color-mix(in srgb, var(--breast) 45%, var(--line));
+  color: var(--breast);
+}
+
+.status[data-state='asleep'] {
+  border-color: color-mix(in srgb, var(--sleep) 45%, var(--line));
+  color: var(--sleep);
+}
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.totals li {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: calc(76px + 17px);
+  width: 2px;
+  background: var(--line);
+}
+
+.event button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.event button:active .summary {
+  color: var(--text-strong);
+}
+
+.event time {
+  color: var(--muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.event .dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.event .dot .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.event .summary {
+  font-size: 17px;
+}
+
+.event.running .summary {
+  font-weight: 650;
+}
+
+.type-breast .dot,
+.type-breast .action-icon {
+  color: var(--breast);
+}
+
+.type-bottle .dot,
+.type-bottle .action-icon {
+  color: var(--bottle);
+}
+
+.type-sleep .dot,
+.type-sleep .action-icon {
+  color: var(--sleep);
+}
+
+.type-diaper .dot,
+.type-diaper .action-icon {
+  color: var(--diaper);
+}
+
+.event.running .dot {
+  border-color: currentColor;
+}
+
+.empty {
+  margin: 28px 0;
+  color: var(--faint);
+  text-align: center;
+}
+
+.actionbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 10px 12px calc(10px + var(--safe-bottom));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 68px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.action:active {
+  background: var(--surface-3);
+}
+
+.action-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+}

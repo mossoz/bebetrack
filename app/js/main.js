@@ -5,7 +5,7 @@ import { EventStore } from './data/store.js';
 import { startSync } from './data/sync.js';
 import { createSession } from './data/session.js';
 import { renderSetup, renderNotConfigured } from './ui/setup.js';
-import { h, clear } from './ui/dom.js';
+import { renderHome } from './ui/home.js';
 
 const root = document.getElementById('app');
 const session = createSession();
@@ -38,8 +38,7 @@ async function start(saved) {
     if (document.visibilityState === 'visible') sync.restart();
   });
 
-  clear(root);
-  root.append(h('section', { class: 'setup' }, h('p', { class: 'lede' }, 'Unlocked. The home screen comes next.')));
+  renderHome(root, { store, session, openSheet: () => {} });
 }
 
 function showSetup() {
