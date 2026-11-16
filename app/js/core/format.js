@@ -109,3 +109,17 @@ export function formatDayLabel(dayStartMs, todayStartMs) {
 export function formatTime(ms) {
   return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
+
+// <input type="datetime-local"> works in local wall-clock time, minute precision.
+const pad2 = (n) => String(n).padStart(2, '0');
+
+export function toLocalInput(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+export function fromLocalInput(value) {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}

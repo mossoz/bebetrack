@@ -6,6 +6,8 @@ import { startSync } from './data/sync.js';
 import { createSession } from './data/session.js';
 import { renderSetup, renderNotConfigured } from './ui/setup.js';
 import { renderHome } from './ui/home.js';
+import { createSheets } from './ui/sheets.js';
+import { createToast } from './ui/toast.js';
 
 const root = document.getElementById('app');
 const session = createSession();
@@ -38,7 +40,16 @@ async function start(saved) {
     if (document.visibilityState === 'visible') sync.restart();
   });
 
-  renderHome(root, { store, session, openSheet: () => {} });
+  const toast = createToast(document.getElementById('toast'), store);
+  let home = null;
+  const openSheet = createSheets({
+    dialog: document.getElementById('sheet'),
+    store,
+    session,
+    toast,
+    onUnitChange: () => home?.render(),
+  });
+  home = renderHome(root, { store, session, openSheet });
 }
 
 function showSetup() {

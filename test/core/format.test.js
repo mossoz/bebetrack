@@ -12,6 +12,8 @@ import {
   formatEventSummary,
   formatTotals,
   formatDayLabel,
+  toLocalInput,
+  fromLocalInput,
 } from '../../app/js/core/format.js';
 import {
   makeBreastManual,
@@ -88,4 +90,12 @@ test('formatDayLabel', () => {
   const older = formatDayLabel(addDays(today, -3), today);
   assert.notEqual(older, 'Today');
   assert.notEqual(older, 'Yesterday');
+});
+
+test('datetime-local helpers use local time', () => {
+  const ms = new Date(2026, 10, 15, 3, 5).getTime();
+  assert.equal(toLocalInput(ms), '2026-11-15T03:05');
+  assert.equal(fromLocalInput('2026-11-15T03:05'), ms);
+  assert.equal(fromLocalInput(''), null);
+  assert.equal(fromLocalInput('nonsense'), null);
 });

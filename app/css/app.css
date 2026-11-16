@@ -480,3 +480,260 @@ button {
   width: 28px;
   height: 28px;
 }
+
+/* ---------- Sheets ---------- */
+
+dialog#sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  overflow-y: auto;
+}
+
+dialog#sheet::backdrop {
+  background: rgb(0 0 0 / 0.62);
+}
+
+.sheet {
+  padding: 8px var(--gutter) calc(20px + var(--safe-bottom));
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 22px;
+}
+
+.sheet .stack > p {
+  margin: 0;
+}
+
+.choices {
+  display: grid;
+  gap: 10px;
+}
+
+.choices.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.choices.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.choice {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.choice:active {
+  background: var(--surface-3);
+}
+
+.choice.type-breast { color: var(--breast); }
+.choice.type-sleep { color: var(--sleep); }
+.choice.type-diaper { color: var(--diaper); }
+
+.choice.suggested,
+.choice[aria-pressed='true'] {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 12%, var(--surface-2));
+}
+
+.choice.wide {
+  width: 100%;
+}
+
+.clock-label {
+  color: var(--muted);
+  font-size: 16px;
+  text-align: center;
+}
+
+.clock {
+  color: var(--text-strong);
+  font-size: 56px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.center {
+  text-align: center;
+}
+
+.amount {
+  display: grid;
+  grid-template-columns: 72px 1fr 72px;
+  align-items: center;
+  gap: 8px;
+}
+
+.readout {
+  color: var(--bottle);
+  font-size: 44px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.step {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.step.big {
+  min-height: 72px;
+  font-size: 30px;
+}
+
+.step:active {
+  background: var(--surface-3);
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.chip {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--bottle);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.field-group {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: var(--tap) 1fr var(--tap);
+  gap: 8px;
+}
+
+.field.number {
+  text-align: center;
+}
+
+input[type='datetime-local'].field {
+  min-width: 0;
+  appearance: none;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.segment {
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.segment[aria-pressed='true'] {
+  background: var(--surface-3);
+  color: var(--text-strong);
+}
+
+.passphrase.small {
+  font-size: 22px;
+}
+
+.version {
+  margin: 0;
+  color: var(--faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- Toast ---------- */
+
+#toast {
+  position: fixed;
+  bottom: calc(var(--bar-height) + 12px);
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 6px 8px 6px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text-strong);
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+#toast.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.toast-undo {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #toast {
+    transition: none;
+  }
+}
