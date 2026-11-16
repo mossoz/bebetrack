@@ -562,6 +562,32 @@ dialog#sheet::backdrop {
   width: 100%;
 }
 
+.choice-name,
+.choice-caption {
+  display: block;
+}
+
+.choice-caption {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* While paused: the side that Resume continues, outlined but not lit. */
+.choice.resume {
+  border-color: currentColor;
+  border-style: dashed;
+}
+
+.choice.suggested .choice-caption,
+.choice.resume .choice-caption,
+.choice[aria-pressed='true'] .choice-caption {
+  color: currentColor;
+}
+
 .clock-label {
   color: var(--muted);
   font-size: 16px;
@@ -575,6 +601,10 @@ dialog#sheet::backdrop {
   font-variant-numeric: tabular-nums;
   text-align: center;
   letter-spacing: -0.02em;
+}
+
+.clock.paused {
+  color: var(--faint);
 }
 
 .center {

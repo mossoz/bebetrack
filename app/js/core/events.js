@@ -43,6 +43,12 @@ export function pauseBreast(ev, at) {
   return { ...ev, sides: closeOpenSegment(ev.sides, at) };
 }
 
+// Continue a paused feed on the side it was paused on.
+export function resumeBreast(ev, at) {
+  if (currentSide(ev)) return ev;
+  return switchSide(ev, lastSide(ev) ?? 'L', at);
+}
+
 export function stopBreast(ev, at) {
   return { ...ev, sides: closeOpenSegment(ev.sides, at), end: at };
 }

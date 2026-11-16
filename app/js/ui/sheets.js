@@ -9,6 +9,7 @@ import {
   startBreast,
   switchSide,
   pauseBreast,
+  resumeBreast,
   stopBreast,
   makeBreastManual,
   editBreast,
@@ -26,6 +27,7 @@ import {
   ozToMl,
   mlToOz,
   parseAmount,
+  breastControls,
   formatClock,
   formatDuration,
   formatTime,
@@ -323,10 +325,23 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       const ev = store.get(id);
       if (ev && isRunning(ev)) await store.save(fn(ev, Date.now()));
     };
+    // Each side button carries a caption (Now / Switch / Resume) so it is clear
+    // how to carry on after a pause or change sides.
+    const captions = { L: h('span', { class: 'choice-caption' }), R: h('span', { class: 'choice-caption' }) };
     const sideButtons = ['L', 'R'].map((s) =>
-      h('button', { class: 'choice type-breast', type: 'button', onclick: () => act((ev, now) => switchSide(ev, s, now)) }, SIDE_NAME[s]),
+      h(
+        'button',
+        { class: 'choice type-breast', type: 'button', onclick: () => act((ev, now) => switchSide(ev, s, now)) },
+        h('span', { class: 'choice-name' }, SIDE_NAME[s]),
+        captions[s],
+      ),
     );
-    const pause = h('button', { class: 'btn', type: 'button', onclick: () => act(pauseBreast) }, 'Pause');
+    // Pause while a side is counting; Resume (the paused side) while paused.
+    const toggle = h('button', {
+      class: 'btn',
+      type: 'button',
+      onclick: () => act((ev, now) => (currentSide(ev) ? pauseBreast(ev, now) : resumeBreast(ev, now))),
+    });
     const stop = h('button', {
       class: 'btn primary',
       type: 'button',
@@ -343,14 +358,20 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       const now = Date.now();
       const side = currentSide(ev);
       const t = sideTotals(ev, now);
-      sideLabel.textContent = side ? `${SIDE_NAME[side]} side` : 'Paused';
+      const view = breastControls(ev);
+      sideLabel.textContent = view.label;
       clock.textContent = formatClock(side ? t[side] : t.L + t.R);
+      clock.classList.toggle('paused', view.paused);
       detail.textContent = `Left ${formatDuration(t.L)} · Right ${formatDuration(t.R)} · started ${formatTime(ev.start)}`;
-      sideButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(['L', 'R'][i] === side)));
-      pause.disabled = !side;
+      view.sides.forEach((v, i) => {
+        sideButtons[i].setAttribute('aria-pressed', String(v.pressed));
+        sideButtons[i].classList.toggle('resume', v.suggested);
+        captions[v.side].textContent = v.caption;
+      });
+      toggle.textContent = view.toggle;
       return true;
     };
-    mountLive('Feeding', [sideLabel, clock, detail, h('div', { class: 'choices two' }, sideButtons), h('div', { class: 'row' }, pause, stop)], update);
+    mountLive('Feeding', [sideLabel, clock, detail, h('div', { class: 'choices two' }, sideButtons), h('div', { class: 'row' }, toggle, stop)], update);
   }
 
   function breastForm(event) {

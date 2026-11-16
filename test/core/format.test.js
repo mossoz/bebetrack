@@ -7,6 +7,7 @@ import {
   mlToOz,
   ozToMl,
   formatAmount,
+  breastControls,
   parseAmount,
   formatDuration,
   formatClock,
@@ -20,6 +21,8 @@ import {
 import {
   makeBreastManual,
   startBreast,
+  switchSide,
+  pauseBreast,
   makeBottle,
   makeDiaper,
   makeSleepManual,
@@ -129,4 +132,29 @@ test('isFutureTime allows a minute of clock slack', () => {
   assert.equal(isFutureTime(now + 30000, now), false);
   assert.equal(isFutureTime(now - 3600000, now), false);
   assert.equal(isFutureTime(now + 120000, now), true);
+});
+
+test('feeding controls while a side is counting', () => {
+  assert.deepEqual(breastControls(startBreast('L', T)), {
+    paused: false,
+    label: 'Left side',
+    toggle: 'Pause',
+    sides: [
+      { side: 'L', name: 'Left', pressed: true, suggested: false, caption: 'Now' },
+      { side: 'R', name: 'Right', pressed: false, suggested: false, caption: 'Switch' },
+    ],
+  });
+});
+
+test('feeding controls while paused point to resuming or switching', () => {
+  const ev = pauseBreast(switchSide(startBreast('L', T), 'R', T + 5 * MIN), T + 9 * MIN);
+  assert.deepEqual(breastControls(ev), {
+    paused: true,
+    label: 'Paused',
+    toggle: 'Resume right',
+    sides: [
+      { side: 'L', name: 'Left', pressed: false, suggested: false, caption: 'Switch' },
+      { side: 'R', name: 'Right', pressed: false, suggested: true, caption: 'Resume' },
+    ],
+  });
 });

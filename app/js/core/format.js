@@ -1,5 +1,5 @@
 // Display text. Pure functions; no DOM.
-import { isRunning, sideTotals } from './events.js';
+import { isRunning, sideTotals, currentSide, lastSide } from './events.js';
 import { addDays } from './days.js';
 
 const MIN = 60000;
@@ -136,4 +136,23 @@ export function fromLocalInput(value) {
 // Times more than a minute ahead of the phone's clock are a typo (often AM/PM).
 export function isFutureTime(ms, now = Date.now()) {
   return ms > now + 60000;
+}
+
+// The running-feed sheet: what is counting, and a caption on each side button
+// so it is clear how to resume after a pause or switch sides.
+export function breastControls(ev) {
+  const side = currentSide(ev);
+  const resume = side ? null : (lastSide(ev) ?? 'L');
+  return {
+    paused: !side,
+    label: side ? `${capitalize(SIDE_NAME[side])} side` : 'Paused',
+    toggle: side ? 'Pause' : `Resume ${SIDE_NAME[resume]}`,
+    sides: ['L', 'R'].map((s) => ({
+      side: s,
+      name: capitalize(SIDE_NAME[s]),
+      pressed: s === side,
+      suggested: s === resume,
+      caption: s === side ? 'Now' : s === resume ? 'Resume' : 'Switch',
+    })),
+  };
 }

@@ -6,6 +6,7 @@ import {
   startBreast,
   switchSide,
   pauseBreast,
+  resumeBreast,
   stopBreast,
   makeBreastManual,
   startSleep,
@@ -196,4 +197,18 @@ test('isValidEvent', () => {
   assert.equal(isValidEvent({ ...makeDiaper('wet', T), diaper: 'green' }), false);
   assert.equal(isValidEvent({ ...makeBottle(90, T), ml: 'lots' }), false);
   assert.equal(isValidEvent({ ...startBreast('L', T), sides: [{ side: 'X', start: T, end: null }] }), false);
+});
+
+test('resume continues the side that was paused', () => {
+  let ev = switchSide(startBreast('L', T), 'R', T + 5 * MIN);
+  ev = pauseBreast(ev, T + 9 * MIN);
+  const resumed = resumeBreast(ev, T + 15 * MIN);
+  assert.equal(currentSide(resumed), 'R');
+  assert.deepEqual(resumed.sides.at(-1), { side: 'R', start: T + 15 * MIN, end: null });
+  assert.deepEqual(sideTotals(resumed, T + 16 * MIN), { L: 5 * MIN, R: 5 * MIN });
+});
+
+test('resume does nothing while a side is counting', () => {
+  const ev = startBreast('L', T);
+  assert.equal(resumeBreast(ev, T + MIN), ev);
 });
