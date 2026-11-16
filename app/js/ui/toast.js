@@ -35,5 +35,11 @@ export function createToast(el, store) {
     timer = setTimeout(hide, SHOW_MS);
   }
 
-  return { show, hide };
+  function reattach() {
+    if (!el.classList.contains('show')) return;
+    const host = document.querySelector('dialog[open]') ?? document.body;
+    if (el.parentElement !== host) host.append(el);
+  }
+
+  return { show, hide, reattach };
 }

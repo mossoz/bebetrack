@@ -47,16 +47,41 @@ export function stopBreast(ev, at) {
   return { ...ev, sides: closeOpenSegment(ev.sides, at), end: at };
 }
 
-export function makeBreastManual(start, leftMin, rightMin) {
+function sequentialSides(start, minutesBySide, order) {
   const sides = [];
   let t = start;
-  for (const [side, minutes] of [['L', leftMin], ['R', rightMin]]) {
+  for (const side of order) {
+    const minutes = minutesBySide[side];
     if (minutes > 0) {
       sides.push({ side, start: t, end: t + minutes * MIN });
       t += minutes * MIN;
     }
   }
-  return { ...base('breast', start, t), sides };
+  return { sides, end: t };
+}
+
+export function makeBreastManual(start, leftMin, rightMin, firstSide = 'L') {
+  const order = firstSide === 'R' ? ['R', 'L'] : ['L', 'R'];
+  const { sides, end } = sequentialSides(start, { L: leftMin, R: rightMin }, order);
+  return { ...base('breast', start, end), sides };
+}
+
+// Edit a finished breastfeed. Unchanged minutes keep the exact segments
+// (shifted if the start moved), so the side it ended on never flips.
+export function editBreast(ev, start, leftMin, rightMin) {
+  const totals = sideTotals(ev, ev.end ?? ev.start);
+  if (Math.round(totals.L / MIN) === leftMin && Math.round(totals.R / MIN) === rightMin) {
+    const delta = start - ev.start;
+    return {
+      ...ev,
+      start,
+      end: ev.end === null ? null : ev.end + delta,
+      sides: ev.sides.map((s) => ({ ...s, start: s.start + delta, end: s.end === null ? null : s.end + delta })),
+    };
+  }
+  const order = [...new Set([...[...ev.sides].sort((a, b) => a.start - b.start).map((s) => s.side), 'L', 'R'])];
+  const { sides, end } = sequentialSides(start, { L: leftMin, R: rightMin }, order);
+  return { ...ev, start, end, sides };
 }
 
 export function startSleep(at) {
@@ -100,9 +125,26 @@ export function durationMs(ev, now) {
   return 0;
 }
 
+// Stable text for an event (sorted keys), so two phones compare content the same way.
+export function canonical(ev) {
+  const sort = (v) =>
+    Array.isArray(v)
+      ? v.map(sort)
+      : v && typeof v === 'object'
+        ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sort(v[k])]))
+        : v;
+  return JSON.stringify(sort(ev));
+}
+
+export function sameEvent(a, b) {
+  return canonical(a) === canonical(b);
+}
+
+// Newer updatedAt wins. A tie is broken by content, so both phones pick the same winner.
 export function merge(current, incoming) {
   if (!current) return incoming;
-  return incoming.updatedAt > current.updatedAt ? incoming : current;
+  if (incoming.updatedAt !== current.updatedAt) return incoming.updatedAt > current.updatedAt ? incoming : current;
+  return canonical(incoming) > canonical(current) ? incoming : current;
 }
 
 const isNum = (x) => typeof x === 'number' && Number.isFinite(x);

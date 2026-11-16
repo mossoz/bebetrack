@@ -123,3 +123,8 @@ export function fromLocalInput(value) {
   const ms = new Date(value).getTime();
   return Number.isFinite(ms) ? ms : null;
 }
+
+// Times more than a minute ahead of the phone's clock are a typo (often AM/PM).
+export function isFutureTime(ms, now = Date.now()) {
+  return ms > now + 60000;
+}

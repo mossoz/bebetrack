@@ -34,10 +34,8 @@ async function start(saved) {
     load: () => loadCached(database, spaceId),
     listen: (since, onRecords, onListenError) => listen(database, spaceId, since, onRecords, onListenError),
     store,
+    cursor: { get: () => session.loadCursor(spaceId), set: (ms) => session.saveCursor(spaceId, ms) },
     onError,
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') sync.restart();
   });
 
   const toast = createToast(document.getElementById('toast'), store);
@@ -50,6 +48,14 @@ async function start(saved) {
     onUnitChange: () => home?.render(),
   });
   home = renderHome(root, { store, session, openSheet });
+
+  // Coming back to the app: catch up with the server and refresh "2h ago" now,
+  // not at the next 30-second tick.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    sync.restart();
+    home.render();
+  });
 }
 
 function showSetup() {

@@ -2,7 +2,7 @@
 // screen updates straight away, even offline), then encrypted and handed to
 // `write`, which queues them for the server.
 import { encryptEvent, decryptEvent } from '../core/crypto.js';
-import { merge, isValidEvent } from '../core/events.js';
+import { merge, isValidEvent, sameEvent } from '../core/events.js';
 
 export class EventStore {
   #key;
@@ -36,6 +36,7 @@ export class EventStore {
 
   async ingest(records) {
     let changed = false;
+    const writeBack = [];
     for (const record of records) {
       let event;
       try {
@@ -53,17 +54,17 @@ export class EventStore {
       if (next !== current) {
         this.#events.set(event.id, next);
         changed = true;
+      } else if (record.atMs != null && !sameEvent(current, event)) {
+        // The server kept whichever write arrived last, but ours is newer:
+        // write it again so the server (and the other phone) converge on it.
+        writeBack.push(current);
       }
     }
     if (changed) this.#notify();
+    for (const event of writeBack) this.#send(await encryptEvent(this.#key, event));
   }
 
-  async save(event) {
-    const previous = this.#events.get(event.id);
-    const saved = { ...event, updatedAt: Math.max(this.#now(), (previous?.updatedAt ?? 0) + 1) };
-    this.#events.set(saved.id, saved);
-    this.#notify();
-    const record = await encryptEvent(this.#key, saved);
+  #send(record) {
     // Not awaited: Firestore resolves a write only once the server has it,
     // which never happens while offline. The SDK queues it meanwhile.
     try {
@@ -71,6 +72,14 @@ export class EventStore {
     } catch (e) {
       console.warn('bebetrack: write failed', e);
     }
+  }
+
+  async save(event) {
+    const previous = this.#events.get(event.id);
+    const saved = { ...event, updatedAt: Math.max(this.#now(), (previous?.updatedAt ?? 0) + 1) };
+    this.#events.set(saved.id, saved);
+    this.#notify();
+    this.#send(await encryptEvent(this.#key, saved));
     return { previous, saved };
   }
 

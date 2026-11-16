@@ -31,6 +31,7 @@ function nextBatch(db, since) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('no batch within 5s')), 5000);
     const stop = listen(db, SPACE, since, (records) => {
+      if (!records.length) return; // a "now in sync" signal with no entries
       clearTimeout(timer);
       stop();
       resolve(records);
@@ -60,6 +61,12 @@ test('claim then join', async () => {
   assert.equal(await claimSpace(A, SPACE, HASH), 'claimed');
   assert.equal(await claimSpace(B, SPACE, HASH), 'joined');
   await assert.rejects(claimSpace(B, OTHER, OTHER_HASH), /space-taken/);
+});
+
+test('a claim the rules do not accept fails loudly', async () => {
+  const A = client();
+  // The hash belongs to a different space, so the rules will never let this space be read.
+  await assert.rejects(claimSpace(A, SPACE, OTHER_HASH), /claim-mismatch/);
 });
 
 test('checkSpace', async () => {
@@ -119,6 +126,25 @@ test('offline write is cached and syncs later', async () => {
   await waitForPendingWrites(A);
   const batch = await nextBatch(B, 0);
   assert.ok(batch.some((r) => r.id === r4.id));
+});
+
+test('listen marks server-synced snapshots and reports the newest write time', async () => {
+  const A = client();
+  const B = client();
+  await claimSpace(A, SPACE, HASH);
+  const r1 = record();
+  await writeRecord(A, SPACE, r1);
+  const meta = await new Promise((resolve, reject) => {
+    const stop = listen(B, SPACE, 0, (records, m) => {
+      if (!m.synced) return;
+      stop();
+      resolve({ ...m, ids: records.map((r) => r.id) });
+    }, reject);
+  });
+  assert.equal(meta.synced, true);
+  assert.deepEqual(meta.ids, [r1.id]);
+  assert.equal(typeof meta.maxAtMs, 'number');
+  assert.ok(meta.maxAtMs > 0);
 });
 
 test('loadCached on a fresh client returns []', async () => {

@@ -2,7 +2,8 @@ rules_version = '2';
 
 // Bebetrack serves one family per Firebase project.
 //
-// The first "Start new" writes meta/claim = { h: base64(SHA-256(spaceId)) }.
+// The first "Start new" writes meta/claim = { h: base64url(SHA-256(spaceId)) },
+// with padding: the encoding hashing.sha256(...).toBase64() produces.
 // From then on, only the claimed space can be read or written. Every entry is
 // encrypted on the phone, so the server only ever sees { v, iv, ct, at }.
 // To start over, delete meta/claim in the Firebase console (see README).

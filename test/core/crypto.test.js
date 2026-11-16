@@ -26,6 +26,12 @@ test('normalizePassphrase collapses typing differences', () => {
   assert.equal(normalizePassphrase('  Acid   Acorn\tacre '), 'acid acorn acre');
 });
 
+test('normalizePassphrase ignores punctuation keyboards add', () => {
+  // Gboard and iOS turn a double space into ". "; autocorrect can add commas.
+  assert.equal(normalizePassphrase('Acid. acorn, acre!'), 'acid acorn acre');
+  assert.equal(normalizePassphrase('yo-yo acorn'), 'yo-yo acorn');
+});
+
 test('typed variations derive the same secrets', async () => {
   const a = await deriveSecrets('acid acorn acre', FAST);
   const b = await deriveSecrets('Acid  acorn acre ', FAST);

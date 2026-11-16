@@ -57,12 +57,14 @@ export async function checkSpace(db, spaceId) {
 export async function claimSpace(db, spaceId, spaceHash) {
   try {
     await setDoc(doc(db, 'meta', 'claim'), { h: spaceHash });
-    return 'claimed';
   } catch (e) {
     if (e.code !== 'permission-denied') throw e;
+    if (await checkSpace(db, spaceId)) return 'joined';
+    throw new Error('space-taken');
   }
-  if (await checkSpace(db, spaceId)) return 'joined';
-  throw new Error('space-taken');
+  // Prove the rules accept this space before anyone logs into it.
+  if (!(await checkSpace(db, spaceId))) throw new Error('claim-mismatch');
+  return 'claimed';
 }
 
 export function writeRecord(db, spaceId, { id, v, iv, ct }) {
@@ -78,16 +80,28 @@ export async function loadCached(db, spaceId) {
   }
 }
 
-export function listen(db, spaceId, sinceMs, onRecords, onError) {
+// onBatch(records, { synced, maxAtMs }): `records` are the added or changed
+// entries. `synced` is true when the snapshot matches the server; only then is
+// `maxAtMs` (the newest write time in it) safe to use as a sync cursor.
+export function listen(db, spaceId, sinceMs, onBatch, onError) {
   const q = query(events(db, spaceId), where('at', '>', Timestamp.fromMillis(sinceMs)), orderBy('at'));
   return onSnapshot(
     q,
+    { includeMetadataChanges: true },
     (snap) => {
       const records = snap
         .docChanges()
         .filter((c) => c.type !== 'removed')
         .map((c) => toRecord(c.doc));
-      if (records.length) onRecords(records);
+      const synced = !snap.metadata.fromCache;
+      let maxAtMs = sinceMs;
+      if (synced) {
+        for (const d of snap.docs) {
+          const at = d.data().at;
+          if (at && at.toMillis() > maxAtMs) maxAtMs = at.toMillis();
+        }
+      }
+      if (records.length || synced) onBatch(records, { synced, maxAtMs });
     },
     onError,
   );

@@ -123,6 +123,25 @@ export function renderHome(root, { store, session, openSheet }) {
     scheduleTick(all.some(isRunning));
   }
 
+  // While a timer runs, only the status line and totals change each second.
+  // The timeline stays put so a tap on a row is never lost to a re-render.
+  function renderLive() {
+    const now = Date.now();
+    if (startOfDay(now) !== today) return render();
+    const unit = session.loadUnit();
+    const all = store.all();
+    if (day === today) {
+      const s = computeStatus(all, now);
+      status.textContent = formatStatus(s, unit);
+      status.dataset.state = s.feeding ? 'feeding' : s.asleepMs !== null ? 'asleep' : 'idle';
+    }
+    const items = formatTotals(dayTotals(eventsForDay(all, day), now), unit);
+    [...totals.children].forEach((li, i) => {
+      if (li.textContent !== items[i]) li.textContent = items[i];
+    });
+    if (!all.some(isRunning)) render();
+  }
+
   status.addEventListener('click', () => {
     if (status.dataset.state === 'feeding') openSheet('breast');
     if (status.dataset.state === 'asleep') openSheet('sleep');
@@ -135,7 +154,7 @@ export function renderHome(root, { store, session, openSheet }) {
     if (timer && fast === running) return;
     clearInterval(timer);
     fast = running;
-    timer = setInterval(render, running ? 1000 : 30000);
+    timer = setInterval(running ? renderLive : render, running ? 1000 : 30000);
   }
 
   store.subscribe(render);

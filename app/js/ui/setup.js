@@ -9,6 +9,7 @@ const TIMEOUT_MS = 15000;
 
 const MESSAGES = {
   taken: 'This Bebetrack is already set up with a different passphrase. Use Join, or see the README to start over.',
+  mismatch_claim: "Setup couldn't be confirmed by the server. See \"Starting over\" in the README, then try again.",
   mismatch: "That passphrase doesn't match. Check the words and try again.",
   offline: "Couldn't reach the server. Setup needs a connection.",
   weak: `Use at least ${MIN_LENGTH} characters.`,
@@ -56,6 +57,8 @@ export function renderSetup(root, { db, onReady }) {
     } catch (e) {
       if (e.message === 'space-taken') {
         errorEl.textContent = MESSAGES.taken;
+      } else if (e.message === 'claim-mismatch') {
+        errorEl.textContent = MESSAGES.mismatch_claim;
       } else {
         console.error('bebetrack: setup failed', e);
         errorEl.textContent = MESSAGES.offline;
@@ -115,6 +118,11 @@ export function renderSetup(root, { db, onReady }) {
         error.textContent = MESSAGES.weak;
         return;
       }
+      // After the first try the words are fixed: a claim that timed out may
+      // still reach the server, and it must match what's on screen.
+      shuffle.hidden = true;
+      toggle.hidden = true;
+      own.readOnly = true;
       unlock(chosen, go, error, 'start');
     });
 

@@ -18,6 +18,8 @@ import {
   durationMs,
   merge,
   isValidEvent,
+  editBreast,
+  sameEvent,
 } from '../../app/js/core/events.js';
 
 const T = Date.UTC(2026, 10, 15, 3, 0);
@@ -118,9 +120,61 @@ test('merge', () => {
   const newer = { ...base, ml: 120, updatedAt: 2 };
   assert.equal(merge(older, newer), newer);
   assert.equal(merge(newer, older), newer);
-  const tie = { ...base, ml: 30, updatedAt: 2 };
-  assert.equal(merge(newer, tie), newer);
   assert.equal(merge(undefined, older), older);
+});
+
+test('merge breaks ties the same way on both phones', () => {
+  const base = makeBottle(90, T);
+  const a = { ...base, ml: 120, updatedAt: 2 };
+  const b = { ...base, ml: 30, updatedAt: 2 };
+  assert.deepEqual(merge(a, b), merge(b, a));
+  const same = { ...a };
+  assert.equal(merge(a, same), a);
+});
+
+test('sameEvent compares content, not key order', () => {
+  const a = makeBottle(90, T);
+  const reordered = Object.fromEntries(Object.entries(a).reverse());
+  assert.equal(sameEvent(a, reordered), true);
+  assert.equal(sameEvent(a, { ...a, ml: 91 }), false);
+});
+
+// A timed feed that went Right, then Left: it ended on Left.
+function rightThenLeft() {
+  let ev = startBreast('R', T);
+  ev = switchSide(ev, 'L', T + 5 * MIN);
+  return stopBreast(ev, T + 12 * MIN);
+}
+
+test('editing a feed without changing minutes keeps its sides and order', () => {
+  const ev = rightThenLeft();
+  const edited = editBreast(ev, ev.start, 7, 5);
+  assert.deepEqual(edited.sides, ev.sides);
+  assert.equal(lastSide(edited), 'L');
+  assert.equal(edited.id, ev.id);
+});
+
+test('editing only the start shifts the whole feed', () => {
+  const ev = rightThenLeft();
+  const edited = editBreast(ev, ev.start + 10 * MIN, 7, 5);
+  assert.equal(edited.start, T + 10 * MIN);
+  assert.equal(edited.end, T + 22 * MIN);
+  assert.deepEqual(edited.sides.map((s) => s.side), ['R', 'L']);
+  assert.equal(edited.sides[0].start, T + 10 * MIN);
+});
+
+test('changing minutes keeps the original side order', () => {
+  const edited = editBreast(rightThenLeft(), T, 8, 5);
+  assert.deepEqual(edited.sides.map((s) => s.side), ['R', 'L']);
+  assert.deepEqual(sideTotals(edited, T), { L: 8 * MIN, R: 5 * MIN });
+  assert.equal(lastSide(edited), 'L');
+  assert.equal(edited.end, T + 13 * MIN);
+});
+
+test('a past feed can start on the right', () => {
+  const ev = makeBreastManual(T, 10, 5, 'R');
+  assert.deepEqual(ev.sides.map((s) => s.side), ['R', 'L']);
+  assert.equal(lastSide(ev), 'L');
 });
 
 test('isValidEvent', () => {

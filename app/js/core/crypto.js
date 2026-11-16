@@ -31,8 +31,10 @@ function toBase64Url(bytes) {
   return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// Case, spaces and punctuation don't count: phones capitalize the first letter,
+// and keyboards turn a double space into ". ". Letters, digits and hyphens do.
 export function normalizePassphrase(passphrase) {
-  return passphrase.normalize('NFKC').trim().toLowerCase().split(/\s+/).join(' ');
+  return passphrase.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, ' ').trim();
 }
 
 export async function importKey(keyB64) {

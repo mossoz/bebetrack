@@ -11,6 +11,7 @@ import {
   pauseBreast,
   stopBreast,
   makeBreastManual,
+  editBreast,
   startSleep,
   stopSleep,
   makeSleepManual,
@@ -29,10 +30,12 @@ import {
   formatTime,
   toLocalInput,
   fromLocalInput,
+  isFutureTime,
 } from '../core/format.js';
 
 const MIN = 60000;
 const SIDE_NAME = { L: 'Left', R: 'Right' };
+const FUTURE = 'That time is in the future.';
 const DIAPER_KINDS = [
   ['wet', 'Wet'],
   ['solid', 'Solid'],
@@ -40,7 +43,7 @@ const DIAPER_KINDS = [
 ];
 
 function timeField(label, ms) {
-  const input = h('input', { class: 'field', type: 'datetime-local', value: toLocalInput(ms) });
+  const input = h('input', { class: 'field', type: 'datetime-local', value: toLocalInput(ms), max: toLocalInput(Date.now()) });
   return { el: h('label', { class: 'field-group' }, h('span', { class: 'label' }, label), input), input };
 }
 
@@ -85,6 +88,7 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
   function close() {
     stopLive();
     if (dialog.open) dialog.close();
+    toast.reattach(); // keep a showing toast visible after the sheet closes
   }
 
   dialog.addEventListener('click', (e) => {
@@ -110,6 +114,7 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       ),
     );
     if (!dialog.open) dialog.showModal();
+    toast.reattach(); // clearing the dialog removed a toast that was showing in it
   }
 
   function mountLive(title, nodes, update) {
@@ -189,12 +194,17 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       }, label),
     );
     const time = timeField('Time', event.start);
+    const error = h('p', { class: 'error', role: 'alert' });
     const submit = async () => {
       const at = fromLocalInput(time.input.value) ?? event.start;
+      if (isFutureTime(at)) {
+        error.textContent = FUTURE;
+        return;
+      }
       close();
       await save({ ...event, diaper: kind, start: at, end: at });
     };
-    mount('Edit diaper', h('div', { class: 'choices three' }, buttons), time.el, ...formButtons(submit, event));
+    mount('Edit diaper', h('div', { class: 'choices three' }, buttons), time.el, error, ...formButtons(submit, event));
   }
 
   // ---------- Bottle ----------
@@ -223,6 +233,10 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       const at = fromLocalInput(time.input.value);
       if (at === null) {
         error.textContent = 'Pick a time.';
+        return;
+      }
+      if (isFutureTime(at)) {
+        error.textContent = FUTURE;
         return;
       }
       close();
@@ -315,21 +329,53 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
     const left = minutesField('Left minutes', Math.round(t.L / MIN));
     const right = minutesField('Right minutes', Math.round(t.R / MIN));
     const error = h('p', { class: 'error', role: 'alert' });
+
+    // A past feed with both sides: which one came first decides "next side".
+    let firstSide = computeStatus(store.all(), Date.now()).nextSide ?? 'L';
+    const firstButtons = ['L', 'R'].map((side) =>
+      h('button', {
+        class: 'segment',
+        type: 'button',
+        'aria-pressed': String(side === firstSide),
+        onclick: () => {
+          firstSide = side;
+          firstButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(['L', 'R'][i] === firstSide)));
+        },
+      }, SIDE_NAME[side]),
+    );
+    const firstChoice = event
+      ? null
+      : h('div', { class: 'field-group' }, h('span', { class: 'label' }, 'Started on'), h('div', { class: 'segmented' }, firstButtons));
+
     const submit = async () => {
       const at = fromLocalInput(start.input.value);
       if (at === null) {
         error.textContent = 'Pick a start time.';
         return;
       }
+      if (isFutureTime(at)) {
+        error.textContent = FUTURE;
+        return;
+      }
       if (left.value() + right.value() <= 0) {
         error.textContent = 'Add minutes for at least one side.';
         return;
       }
-      const built = makeBreastManual(at, left.value(), right.value());
+      const built = event
+        ? editBreast(event, at, left.value(), right.value())
+        : makeBreastManual(at, left.value(), right.value(), firstSide);
       close();
-      await save(event ? { ...built, id: event.id } : built);
+      await save(built);
     };
-    mount(event ? 'Edit breastfeed' : 'Past breastfeed', start.el, left.el, right.el, error, ...formButtons(submit, event));
+    mount(
+      event ? 'Edit breastfeed' : 'Past breastfeed',
+      start.el,
+      firstChoice,
+      left.el,
+      right.el,
+      error,
+      ...formButtons(submit, event),
+    );
   }
 
   // ---------- Sleep ----------
@@ -381,6 +427,10 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       const b = fromLocalInput(end.input.value);
       if (a === null || b === null || b <= a) {
         error.textContent = 'Waking up has to be after falling asleep.';
+        return;
+      }
+      if (isFutureTime(b)) {
+        error.textContent = FUTURE;
         return;
       }
       close();

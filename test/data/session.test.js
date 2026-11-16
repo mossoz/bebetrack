@@ -62,3 +62,14 @@ test('unit', () => {
   s.saveUnit('oz');
   assert.equal(s.loadUnit(), 'oz');
 });
+
+test('sync cursor is kept per space and cleared on leave', () => {
+  const s = createSession(memoryStorage());
+  assert.equal(s.loadCursor('space-1'), 0);
+  s.saveCursor('space-1', 1234);
+  assert.equal(s.loadCursor('space-1'), 1234);
+  assert.equal(s.loadCursor('space-2'), 0);
+  s.clear();
+  assert.equal(s.loadCursor('space-1'), 0);
+  assert.equal(createSession(throwing).loadCursor('space-1'), 0);
+});

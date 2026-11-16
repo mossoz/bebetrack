@@ -42,19 +42,25 @@ const PRECACHE = [
 const PRECACHED = new Set(PRECACHE.map((path) => new URL(path, self.location).href));
 const INDEX = new URL('./index.html', self.location).href;
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) =>
-        cache.addAll(
-          PRECACHE.map((path) =>
-            path.startsWith('https://') ? new Request(path, { mode: 'cors' }) : new Request(path, { cache: 'reload' }),
-          ),
-        ),
-      )
-      .then(() => self.skipWaiting()),
+// Our own files are fetched with ?v=BUILD so a CDN edge can't hand back a
+// stale copy from the previous deploy; they're stored under the clean URL.
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(
+    PRECACHE.map(async (path) => {
+      const url = new URL(path, self.location);
+      const request = path.startsWith('https://')
+        ? new Request(url, { mode: 'cors' })
+        : new Request(`${url.href}?v=${BUILD}`, { cache: 'reload' });
+      const response = await fetch(request);
+      if (!response.ok) throw new Error(`precache failed for ${path}: ${response.status}`);
+      await cache.put(url.href, response);
+    }),
   );
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {

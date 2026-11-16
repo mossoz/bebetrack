@@ -14,6 +14,7 @@ import {
   formatDayLabel,
   toLocalInput,
   fromLocalInput,
+  isFutureTime,
 } from '../../app/js/core/format.js';
 import {
   makeBreastManual,
@@ -98,4 +99,11 @@ test('datetime-local helpers use local time', () => {
   assert.equal(fromLocalInput('2026-11-15T03:05'), ms);
   assert.equal(fromLocalInput(''), null);
   assert.equal(fromLocalInput('nonsense'), null);
+});
+
+test('isFutureTime allows a minute of clock slack', () => {
+  const now = 1_000_000;
+  assert.equal(isFutureTime(now + 30000, now), false);
+  assert.equal(isFutureTime(now - 3600000, now), false);
+  assert.equal(isFutureTime(now + 120000, now), true);
 });

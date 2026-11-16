@@ -133,3 +133,23 @@ test('undo a delete brings it back', async () => {
   await store.undo(removal);
   assert.deepEqual(store.all().map((e) => e.id), [saved.id]);
 });
+
+test('a newer local version is written back when the server holds an older one', async () => {
+  const { store, writes } = setup(10);
+  const local = (await store.save(makeBottle(90, 500))).saved;
+  assert.equal(writes.length, 1);
+  const olderOnServer = { ...(await encryptEvent(secrets.key, { ...local, ml: 30, updatedAt: 5 })), atMs: 123 };
+  await store.ingest([olderOnServer]);
+  assert.equal(store.get(local.id).ml, 90);
+  assert.equal(writes.length, 2);
+  assert.deepEqual(await decryptEvent(secrets.key, writes[1]), local);
+});
+
+test('no write-back for pending records or identical copies', async () => {
+  const { store, writes } = setup(10);
+  const local = (await store.save(makeBottle(90, 500))).saved;
+  const pendingOlder = { ...(await encryptEvent(secrets.key, { ...local, ml: 30, updatedAt: 5 })), atMs: null };
+  const sameOnServer = { ...(await encryptEvent(secrets.key, local)), atMs: 456 };
+  await store.ingest([pendingOlder, sameOnServer]);
+  assert.equal(writes.length, 1);
+});
