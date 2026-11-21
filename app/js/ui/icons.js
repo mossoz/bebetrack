@@ -9,6 +9,7 @@ const PATHS = {
   diaper: '<path d="M3.5 7.5h17v2.5a8.5 8.5 0 0 1-17 0z"/><path d="M8 7.5v2.5M16 7.5v2.5"/>',
   settings:
     '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 21h4"/>',
   prev: '<path d="M15 18l-6-6 6-6"/>',
   next: '<path d="M9 18l6-6-6-6"/>',
 };

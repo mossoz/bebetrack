@@ -199,6 +199,13 @@ test('isValidEvent', () => {
   assert.equal(isValidEvent({ ...startBreast('L', T), sides: [{ side: 'X', start: T, end: null }] }), false);
 });
 
+test('a breastfeed may carry a reminder time', () => {
+  const fed = stopBreast(startBreast('L', T), T + 15 * MIN);
+  assert.equal(isValidEvent({ ...fed, remindAt: T + 135 * MIN }), true);
+  assert.equal(isValidEvent({ ...fed, remindAt: null }), true);
+  assert.equal(isValidEvent({ ...fed, remindAt: 'soon' }), false);
+});
+
 test('resume continues the side that was paused', () => {
   let ev = switchSide(startBreast('L', T), 'R', T + 5 * MIN);
   ev = pauseBreast(ev, T + 9 * MIN);

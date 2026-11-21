@@ -12,7 +12,10 @@ import {
   formatDuration,
   formatClock,
   formatEventSummary,
-  formatTotals,
+  formatDayTiles,
+  formatReminder,
+  formatTime,
+  REMIND_MINUTES,
   formatDayLabel,
   toLocalInput,
   fromLocalInput,
@@ -97,17 +100,33 @@ test('formatEventSummary', () => {
   assert.equal(formatEventSummary(startSleep(T), 'ml', now), 'Sleep · asleep now');
 });
 
-test('formatTotals', () => {
-  const totals = { feeds: 1, breastMs: 95 * MIN, bottleMl: 240, sleepMs: 800 * MIN, wet: 6, solid: 3 };
-  assert.deepEqual(formatTotals(totals, 'ml'), [
-    '1 feed',
-    '1h 35m breast',
-    '240 ml bottle',
-    '13h 20m sleep',
-    '6 wet',
-    '3 solid',
+test('day tiles: one per logging button, values first', () => {
+  const totals = { feeds: 3, breasts: 2, bottles: 1, sleeps: 3, breastMs: 95 * MIN, bottleMl: 240, sleepMs: 800 * MIN, wet: 6, solid: 3 };
+  assert.deepEqual(formatDayTiles(totals, 'ml'), [
+    { kind: 'breast', value: '1h 35m', caption: '2 feeds', empty: false },
+    { kind: 'bottle', value: '240 ml', caption: '1 bottle', empty: false },
+    { kind: 'sleep', value: '13h 20m', caption: '3 sleeps', empty: false },
+    { kind: 'diaper', value: '6 · 3', caption: 'wet · solid', empty: false },
   ]);
-  assert.equal(formatTotals({ ...totals, feeds: 8 }, 'ml')[0], '8 feeds');
+});
+
+test('day tiles with nothing logged are marked empty', () => {
+  const none = { feeds: 0, breasts: 0, bottles: 0, sleeps: 0, breastMs: 0, bottleMl: 0, sleepMs: 0, wet: 0, solid: 0 };
+  const tiles = formatDayTiles(none, 'oz');
+  assert.deepEqual(tiles.map((t) => t.empty), [true, true, true, true]);
+  assert.equal(tiles[1].value, '0 oz');
+  assert.equal(tiles[0].caption, '0 feeds');
+});
+
+test('reminder choices run from 30 minutes to 4 hours in 30-minute steps', () => {
+  assert.deepEqual(REMIND_MINUTES, [30, 60, 90, 120, 150, 180, 210, 240]);
+});
+
+test('formatReminder', () => {
+  const at = T + 90 * MIN;
+  assert.equal(formatReminder({ at, due: false }, T + 10 * MIN), `Next feed ${formatTime(at)} · in 1h 20m`);
+  assert.equal(formatReminder({ at, due: false }, at - 20000), `Next feed ${formatTime(at)} · in 1m`);
+  assert.equal(formatReminder({ at, due: true }, at + 5 * MIN), `Feed due · ${formatTime(at)}`);
 });
 
 test('formatDayLabel', () => {

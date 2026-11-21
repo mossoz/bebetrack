@@ -1,13 +1,15 @@
-// The main screen: status line, the day's totals and timeline, day navigation,
-// and the four big logging buttons.
+// The main screen: status line, feed reminder, the day's recap tiles and
+// timeline, day navigation, and the four big logging buttons.
 import { h, clear } from './dom.js';
 import { icon } from './icons.js';
+import { chime } from './chime.js';
 import { startOfDay, addDays, eventsForDay, dayTotals } from '../core/days.js';
 import { computeStatus } from '../core/status.js';
 import { isRunning } from '../core/events.js';
 import {
   formatStatus,
-  formatTotals,
+  formatDayTiles,
+  formatReminder,
   formatEventSummary,
   formatDayLabel,
   formatTime,
@@ -20,6 +22,9 @@ const KINDS = [
   ['diaper', 'Diaper'],
 ];
 const SWIPE_PX = 60;
+// Chime only when a reminder comes due while the app is on screen, not when
+// someone opens the app long after it was due.
+const CHIME_WINDOW_MS = 60000;
 
 export function renderHome(root, { store, session, openSheet }) {
   let today = startOfDay(Date.now());
@@ -30,10 +35,12 @@ export function renderHome(root, { store, session, openSheet }) {
   const next = h('button', { class: 'icon-btn', 'aria-label': 'Next day' }, icon('next'));
   const settings = h('button', { class: 'icon-btn', 'aria-label': 'Settings' }, icon('settings'));
   const status = h('button', { class: 'status', type: 'button' });
-  const totals = h('ul', { class: 'totals', 'aria-label': 'Day totals' });
+  const reminderText = h('span', { class: 'reminder-text' });
+  const reminderBar = h('button', { class: 'reminder', type: 'button', hidden: true }, icon('bell', 'reminder-icon'), reminderText);
+  const totals = h('ul', { class: 'tiles', 'aria-label': 'Day totals' });
   const timeline = h('ol', { class: 'timeline', 'aria-label': 'Timeline' });
   const empty = h('p', { class: 'empty' }, 'Nothing logged this day.');
-  const content = h('div', { class: 'content' }, status, totals, timeline, empty);
+  const content = h('div', { class: 'content' }, status, reminderBar, totals, timeline, empty);
 
   const bar = h(
     'nav',
@@ -92,16 +99,8 @@ export function renderHome(root, { store, session, openSheet }) {
     label.textContent = formatDayLabel(day, today);
     next.disabled = isToday;
 
-    status.hidden = !isToday;
-    if (isToday) {
-      const s = computeStatus(all, now);
-      status.textContent = formatStatus(s, unit);
-      status.dataset.state = s.feeding ? 'feeding' : s.asleepMs !== null ? 'asleep' : 'idle';
-    }
-
+    renderTop(all, now, unit);
     const dayEvents = eventsForDay(all, day);
-    clear(totals);
-    totals.append(...formatTotals(dayTotals(dayEvents, now), unit).map((t) => h('li', null, t)));
 
     clear(timeline);
     timeline.append(
@@ -128,19 +127,70 @@ export function renderHome(root, { store, session, openSheet }) {
   function renderLive() {
     const now = Date.now();
     if (startOfDay(now) !== today) return render();
-    const unit = session.loadUnit();
     const all = store.all();
-    if (day === today) {
+    renderTop(all, now, session.loadUnit());
+    if (!all.some(isRunning)) render();
+  }
+
+  // Status line, reminder and the day's tiles: everything above the timeline.
+  function renderTop(all, now, unit) {
+    const isToday = day === today;
+    status.hidden = !isToday;
+    let reminder = null;
+    if (isToday) {
       const s = computeStatus(all, now);
       status.textContent = formatStatus(s, unit);
       status.dataset.state = s.feeding ? 'feeding' : s.asleepMs !== null ? 'asleep' : 'idle';
+      reminder = s.reminder;
     }
-    const items = formatTotals(dayTotals(eventsForDay(all, day), now), unit);
-    [...totals.children].forEach((li, i) => {
-      if (li.textContent !== items[i]) li.textContent = items[i];
-    });
-    if (!all.some(isRunning)) render();
+    renderReminder(reminder, now);
+
+    const tiles = formatDayTiles(dayTotals(eventsForDay(all, day), now), unit);
+    const key = JSON.stringify(tiles);
+    if (totals.dataset.key === key) return; // unchanged: leave the DOM alone
+    totals.dataset.key = key;
+    clear(totals);
+    totals.append(
+      ...tiles.map((t) =>
+        h(
+          'li',
+          { class: `tile type-${t.kind}${t.empty ? ' zero' : ''}` },
+          icon(t.kind, 'tile-icon'),
+          h('span', { class: 'tile-value' }, t.value),
+          h('span', { class: 'tile-caption' }, t.caption),
+        ),
+      ),
+    );
   }
+
+  let reminderId = null;
+  let reminderTimer = null;
+  const chimed = new Set();
+  function renderReminder(reminder, now) {
+    clearTimeout(reminderTimer);
+    reminderBar.hidden = !reminder;
+    reminderId = reminder?.id ?? null;
+    if (!reminder) return;
+    reminderText.textContent = formatReminder(reminder, now);
+    reminderBar.classList.toggle('due', reminder.due);
+    if (!reminder.due) {
+      // Re-render the moment it comes due (timers can't wait longer than ~24 days).
+      reminderTimer = setTimeout(render, Math.min(reminder.at - now + 50, 2 ** 31 - 1));
+      return;
+    }
+    const key = `${reminder.id}:${reminder.at}`;
+    if (chimed.has(key)) return;
+    if (now - reminder.at >= CHIME_WINDOW_MS) chimed.add(key); // long past: no sound
+    else if (document.visibilityState === 'visible') {
+      chimed.add(key);
+      chime();
+    }
+  }
+
+  reminderBar.addEventListener('click', () => {
+    const ev = reminderId && store.get(reminderId);
+    if (ev) openSheet('reminder', ev);
+  });
 
   status.addEventListener('click', () => {
     if (status.dataset.state === 'feeding') openSheet('breast');

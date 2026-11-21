@@ -327,23 +327,87 @@ button {
   color: var(--sleep);
 }
 
-.totals {
+/* Next-feed reminder, between the status line and the day's tiles. */
+.reminder {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: -4px 0 14px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--breast) 40%, var(--line));
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--breast);
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.reminder.due {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.reminder-icon {
+  display: inline-flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* The day's recap: one tile per logging button, same order and colors. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   margin: 0 0 18px;
   padding: 0;
   list-style: none;
 }
 
-.totals li {
-  padding: 6px 10px;
-  border-radius: 999px;
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 4px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
   background: var(--surface-2);
-  color: var(--muted);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
+
+.tile.zero {
+  opacity: 0.5;
+}
+
+.tile-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.tile-value {
+  font-size: clamp(13px, 4vw, 16px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tile-caption {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tile.type-breast { color: var(--breast); }
+.tile.type-bottle { color: var(--bottle); }
+.tile.type-sleep { color: var(--sleep); }
+.tile.type-diaper { color: var(--diaper); }
 
 .timeline {
   position: relative;
@@ -685,6 +749,31 @@ dialog#sheet::backdrop {
   color: var(--bottle);
   font-size: 16px;
   font-weight: 600;
+}
+
+.chip.remind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  border-radius: 16px;
+  color: var(--breast);
+}
+
+.chip.remind.selected {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 12%, var(--surface-2));
+}
+
+.chip.remind:disabled {
+  opacity: 0.35;
+}
+
+.chip-time {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .field-group {

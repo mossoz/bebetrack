@@ -11,6 +11,8 @@ A small, private baby log for two phones. Log breastfeeds (with a timer per side
 
 The big buttons at the bottom log a new entry. Tap any entry in the timeline to change or delete it. After every save, an **Undo** button shows for a few seconds. Swipe or use the arrows to see earlier days.
 
+When you stop a breastfeed, the app offers a next-feed reminder, from 30 minutes to 4 hours after the feed ended. Both phones show it at the top, and it turns orange when it's due. Tap it to change or clear it. The next feed clears it, but a bottle within 30 minutes of the breastfeed counts as a top-up and keeps it. **The app only chimes if it's open on screen when the reminder comes due. A locked phone stays silent.**
+
 ## Privacy
 
 - Each phone turns the passphrase into an encryption key and encrypts every entry before it leaves the phone. Firebase (Google), where the entries are stored, only ever sees scrambled data, how many entries there are and when they were written.

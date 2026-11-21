@@ -6,6 +6,7 @@ import {
   makeBreastManual,
   startBreast,
   pauseBreast,
+  stopBreast,
   makeBottle,
   makeSleepManual,
   startSleep,
@@ -62,4 +63,38 @@ test('deleted feeds are ignored', () => {
 test('next side follows the side the last feed ended on', () => {
   const s = computeStatus([makeBreastManual(NOW - 60 * MIN, 10, 5)], NOW);
   assert.equal(s.nextSide, 'L');
+});
+
+// A feed that ended 20m ago with a reminder for 1h 30m after it ended.
+const remindedFeed = () => ({ ...stopBreast(startBreast('L', NOW - 35 * MIN), NOW - 20 * MIN), remindAt: NOW + 70 * MIN });
+
+test('a reminder set after a feed shows until it is due', () => {
+  const feed = remindedFeed();
+  assert.deepEqual(computeStatus([feed], NOW).reminder, { id: feed.id, from: NOW - 20 * MIN, at: NOW + 70 * MIN, due: false });
+  assert.equal(computeStatus([feed], NOW + 70 * MIN).reminder.due, true);
+});
+
+test('the next feed clears the reminder', () => {
+  const feed = remindedFeed(); // ended NOW - 20m
+  assert.equal(computeStatus([feed, makeBottle(60, NOW + 10 * MIN)], NOW + 11 * MIN).reminder, null);
+  assert.equal(computeStatus([feed, startBreast('R', NOW - MIN)], NOW).reminder, null);
+});
+
+test('a top-up bottle right after the breastfeed keeps the reminder', () => {
+  const feed = remindedFeed(); // ended NOW - 20m
+  const topUp = makeBottle(30, NOW - 20 * MIN);
+  assert.equal(computeStatus([feed, topUp], NOW).reminder.at, NOW + 70 * MIN);
+  const lateTopUp = makeBottle(30, NOW + 9 * MIN); // 29m after the feed ended
+  assert.equal(computeStatus([feed, lateTopUp], NOW + 10 * MIN).reminder.at, NOW + 70 * MIN);
+});
+
+test('no reminder unless one was set', () => {
+  assert.equal(computeStatus([leftFeed()], NOW).reminder, null);
+  assert.equal(computeStatus([{ ...remindedFeed(), remindAt: null }], NOW).reminder, null);
+  assert.equal(computeStatus([], NOW).reminder, null);
+});
+
+test('a reminder stays up while baby sleeps', () => {
+  const s = computeStatus([remindedFeed(), startSleep(NOW - 10 * MIN)], NOW);
+  assert.equal(s.reminder.at, NOW + 70 * MIN);
 });

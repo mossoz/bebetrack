@@ -5,6 +5,7 @@
 //   start: ms, end: ms | null,              // null = still running (breast, sleep)
 //   sides?: [{ side: 'L' | 'R', start, end | null }],   // breast only
 //   ml?: number,                            // bottle only, to 0.1 ml
+//   remindAt?: number | null,               // breast only: next-feed reminder time
 //   diaper?: 'wet' | 'solid' | 'both',      // diaper only
 //   deleted: boolean, updatedAt: number     // updatedAt is stamped by EventStore.save
 // }
@@ -169,6 +170,7 @@ export function isValidEvent(x) {
       return DIAPERS.includes(x.diaper);
     case 'breast':
       return (
+        (x.remindAt === undefined || isNumOrNull(x.remindAt)) &&
         Array.isArray(x.sides) &&
         x.sides.every((s) => s && SIDES.includes(s.side) && isNum(s.start) && isNumOrNull(s.end))
       );

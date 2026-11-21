@@ -23,6 +23,7 @@ import {
 import { computeStatus } from '../core/status.js';
 import {
   QUICK_AMOUNTS,
+  REMIND_MINUTES,
   STEP,
   ozToMl,
   mlToOz,
@@ -347,8 +348,9 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       type: 'button',
       onclick: async () => {
         const ev = store.get(id);
-        close();
-        if (ev && isRunning(ev)) await save(stopBreast(ev, Date.now()));
+        if (!ev || !isRunning(ev)) return close();
+        const { saved } = await save(stopBreast(ev, Date.now()));
+        reminderForm(saved.id); // "Remind me?" for the next feed
       },
     }, 'Stop');
 
@@ -372,6 +374,43 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
       return true;
     };
     mountLive('Feeding', [sideLabel, clock, detail, h('div', { class: 'choices two' }, sideButtons), h('div', { class: 'row' }, toggle, stop)], update);
+  }
+
+  // Next-feed reminder, counted from when the feed ended. Shown after Stop, and
+  // from the reminder bar on the home screen to change or clear it.
+  function reminderForm(id) {
+    const ev = store.get(id);
+    if (!ev || ev.deleted || isRunning(ev)) return close();
+    const from = ev.end;
+    const now = Date.now();
+    const hasReminder = typeof ev.remindAt === 'number';
+    const apply = async (remindAt, message) => {
+      const current = store.get(id);
+      close();
+      if (current && !current.deleted && !isRunning(current)) await save({ ...current, remindAt }, message);
+    };
+    const chips = REMIND_MINUTES.map((minutes) => {
+      const at = from + minutes * MIN;
+      return h(
+        'button',
+        {
+          class: `chip remind${at === ev.remindAt ? ' selected' : ''}`,
+          type: 'button',
+          disabled: at <= now,
+          onclick: () => apply(at, `Reminder ${formatTime(at)}`),
+        },
+        h('span', { class: 'chip-main' }, formatDuration(minutes * MIN)),
+        h('span', { class: 'chip-time' }, formatTime(at)),
+      );
+    });
+    mount(
+      hasReminder ? 'Feed reminder' : 'Remind me?',
+      h('p', { class: 'muted' }, `Next feed reminder, counted from the end of this feed (${formatTime(from)}).`),
+      h('div', { class: 'chips' }, chips),
+      hasReminder
+        ? h('button', { class: 'btn', type: 'button', onclick: () => apply(null, 'Reminder cleared') }, 'Clear reminder')
+        : h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'No reminder'),
+    );
   }
 
   function breastForm(event) {
@@ -493,6 +532,7 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
   // ---------- Dispatcher ----------
 
   return function openSheet(kind, event) {
+    if (kind === 'reminder') return reminderForm(event.id);
     if (kind === 'settings') return mount('Settings', ...settingsSheet({ session, onUnitChange, close }));
     if (event && !isRunning(event)) {
       if (event.type === 'diaper') return diaperEdit(event);

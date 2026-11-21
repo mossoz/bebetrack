@@ -23,9 +23,12 @@ export function eventsForDay(events, dayStartMs) {
 }
 
 export function dayTotals(dayEvents, now) {
-  const totals = { feeds: 0, breastMs: 0, bottleMl: 0, sleepMs: 0, wet: 0, solid: 0 };
+  const totals = { feeds: 0, breasts: 0, bottles: 0, sleeps: 0, breastMs: 0, bottleMl: 0, sleepMs: 0, wet: 0, solid: 0 };
   for (const e of dayEvents) {
     if (e.type === 'breast' || e.type === 'bottle') totals.feeds++;
+    if (e.type === 'breast') totals.breasts++;
+    if (e.type === 'bottle') totals.bottles++;
+    if (e.type === 'sleep') totals.sleeps++;
     if (e.type === 'breast') totals.breastMs += durationMs(e, now);
     if (e.type === 'bottle') totals.bottleMl += e.ml;
     if (e.type === 'sleep') totals.sleepMs += durationMs(e, now);

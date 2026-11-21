@@ -94,15 +94,25 @@ export function formatEventSummary(ev, unit, now) {
   }
 }
 
-export function formatTotals(totals, unit) {
+const plural = (n, word) => `${n} ${n === 1 ? word : `${word}s`}`;
+
+// The day's recap: one tile per logging button, in the same order and colors.
+export function formatDayTiles(totals, unit) {
   return [
-    `${totals.feeds} ${totals.feeds === 1 ? 'feed' : 'feeds'}`,
-    `${formatDuration(totals.breastMs)} breast`,
-    `${formatAmount(totals.bottleMl, unit)} bottle`,
-    `${formatDuration(totals.sleepMs)} sleep`,
-    `${totals.wet} wet`,
-    `${totals.solid} solid`,
+    { kind: 'breast', value: formatDuration(totals.breastMs), caption: plural(totals.breasts, 'feed'), empty: totals.breasts === 0 },
+    { kind: 'bottle', value: formatAmount(totals.bottleMl, unit), caption: plural(totals.bottles, 'bottle'), empty: totals.bottles === 0 },
+    { kind: 'sleep', value: formatDuration(totals.sleepMs), caption: plural(totals.sleeps, 'sleep'), empty: totals.sleeps === 0 },
+    { kind: 'diaper', value: `${totals.wet} · ${totals.solid}`, caption: 'wet · solid', empty: totals.wet + totals.solid === 0 },
   ];
+}
+
+// Next-feed reminder choices, in minutes after the feed ended.
+export const REMIND_MINUTES = [30, 60, 90, 120, 150, 180, 210, 240];
+
+export function formatReminder(reminder, now) {
+  if (reminder.due) return `Feed due · ${formatTime(reminder.at)}`;
+  const left = Math.ceil((reminder.at - now) / MIN) * MIN;
+  return `Next feed ${formatTime(reminder.at)} · in ${formatDuration(left)}`;
 }
 
 export function formatDayLabel(dayStartMs, todayStartMs) {

@@ -8,6 +8,7 @@ import { renderSetup, renderNotConfigured } from './ui/setup.js';
 import { renderHome } from './ui/home.js';
 import { createSheets } from './ui/sheets.js';
 import { createToast } from './ui/toast.js';
+import { unlockChime } from './ui/chime.js';
 
 const root = document.getElementById('app');
 const session = createSession();
@@ -39,6 +40,7 @@ async function start(saved) {
   });
 
   const toast = createToast(document.getElementById('toast'), store);
+  unlockChime();
   let home = null;
   const openSheet = createSheets({
     dialog: document.getElementById('sheet'),

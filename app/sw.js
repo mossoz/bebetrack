@@ -28,6 +28,7 @@ const PRECACHE = [
   './js/data/session.js',
   './js/data/store.js',
   './js/data/sync.js',
+  './js/ui/chime.js',
   './js/ui/dom.js',
   './js/ui/home.js',
   './js/ui/icons.js',

@@ -79,6 +79,9 @@ test('totals', () => {
   ];
   assert.deepEqual(dayTotals(events, at(12)), {
     feeds: 3,
+    breasts: 1,
+    bottles: 2,
+    sleeps: 1,
     breastMs: 20 * MIN,
     bottleMl: 150,
     sleepMs: 80 * MIN,
