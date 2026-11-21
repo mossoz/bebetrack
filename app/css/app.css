@@ -317,6 +317,18 @@ button {
   text-align: left;
 }
 
+.status-main,
+.status-detail {
+  display: block;
+}
+
+.status-detail {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
 .status[data-state='feeding'] {
   border-color: color-mix(in srgb, var(--breast) 45%, var(--line));
   color: var(--breast);

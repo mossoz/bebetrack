@@ -376,12 +376,13 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
     mountLive('Feeding', [sideLabel, clock, detail, h('div', { class: 'choices two' }, sideButtons), h('div', { class: 'row' }, toggle, stop)], update);
   }
 
-  // Next-feed reminder, counted from when the feed ended. Shown after Stop, and
-  // from the reminder bar on the home screen to change or clear it.
+  // Next-feed reminder, counted start-to-start: from when this feed began.
+  // Shown after Stop, and from the reminder bar on the home screen to change
+  // or clear it. Times already past are greyed out.
   function reminderForm(id) {
     const ev = store.get(id);
     if (!ev || ev.deleted || isRunning(ev)) return close();
-    const from = ev.end;
+    const from = ev.start;
     const now = Date.now();
     const hasReminder = typeof ev.remindAt === 'number';
     const apply = async (remindAt, message) => {
@@ -405,7 +406,7 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
     });
     mount(
       hasReminder ? 'Feed reminder' : 'Remind me?',
-      h('p', { class: 'muted' }, `Next feed reminder, counted from the end of this feed (${formatTime(from)}).`),
+      h('p', { class: 'muted' }, `Next feed, counted from the start of this one (${formatTime(from)}).`),
       h('div', { class: 'chips' }, chips),
       hasReminder
         ? h('button', { class: 'btn', type: 'button', onclick: () => apply(null, 'Reminder cleared') }, 'Clear reminder')

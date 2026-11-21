@@ -34,7 +34,9 @@ export function renderHome(root, { store, session, openSheet }) {
   const prev = h('button', { class: 'icon-btn', 'aria-label': 'Previous day' }, icon('prev'));
   const next = h('button', { class: 'icon-btn', 'aria-label': 'Next day' }, icon('next'));
   const settings = h('button', { class: 'icon-btn', 'aria-label': 'Settings' }, icon('settings'));
-  const status = h('button', { class: 'status', type: 'button' });
+  const statusMain = h('span', { class: 'status-main' });
+  const statusDetail = h('span', { class: 'status-detail' });
+  const status = h('button', { class: 'status', type: 'button' }, statusMain, statusDetail);
   const reminderText = h('span', { class: 'reminder-text' });
   const reminderBar = h('button', { class: 'reminder', type: 'button', hidden: true }, icon('bell', 'reminder-icon'), reminderText);
   const totals = h('ul', { class: 'tiles', 'aria-label': 'Day totals' });
@@ -139,7 +141,10 @@ export function renderHome(root, { store, session, openSheet }) {
     let reminder = null;
     if (isToday) {
       const s = computeStatus(all, now);
-      status.textContent = formatStatus(s, unit);
+      const text = formatStatus(s);
+      statusMain.textContent = text.main;
+      statusDetail.textContent = text.detail;
+      statusDetail.hidden = !text.detail;
       status.dataset.state = s.feeding ? 'feeding' : s.asleepMs !== null ? 'asleep' : 'idle';
       reminder = s.reminder;
     }

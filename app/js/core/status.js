@@ -4,6 +4,9 @@ import { isRunning, currentSide, sideTotals, lastSide } from './events.js';
 
 const OPPOSITE = { L: 'R', R: 'L' };
 const TOP_UP_MS = 30 * 60000;
+// Babies under a year are rarely awake longer than this. A last sleep that
+// ended longer ago than that means sleep isn't being logged, so "awake" is left out.
+const AWAKE_MAX_MS = 4 * 60 * 60000;
 const latestByStart = (events) => events.reduce((a, b) => (!a || b.start > a.start ? b : a), null);
 
 export function computeStatus(events, now) {
@@ -27,14 +30,15 @@ export function computeStatus(events, now) {
     if (feed.type === 'bottle') lastFeed.ml = feed.ml;
   }
 
-  // A reminder set when a breastfeed ended stays up until the next feed: a new
+  // A reminder is counted start-to-start: `from` is when the breastfeed began.
+  // Set when a breastfeed ends, it stays up until the next feed: a new
   // breastfeed, or a bottle. A bottle within TOP_UP_MS of the feed's end is a
   // top-up after it, not the next feed, so the reminder stays.
   let reminder = null;
   const lastBreast = latestByStart(live.filter((e) => e.type === 'breast'));
   if (lastBreast && !isRunning(lastBreast) && typeof lastBreast.remindAt === 'number') {
     const fedSince = live.some((e) => e.type === 'bottle' && e.start >= lastBreast.end + TOP_UP_MS);
-    if (!fedSince) reminder = { id: lastBreast.id, from: lastBreast.end, at: lastBreast.remindAt, due: now >= lastBreast.remindAt };
+    if (!fedSince) reminder = { id: lastBreast.id, from: lastBreast.start, at: lastBreast.remindAt, due: now >= lastBreast.remindAt };
   }
 
   const breast = latestByStart(live.filter((e) => e.type === 'breast' && lastSide(e)));
@@ -44,6 +48,7 @@ export function computeStatus(events, now) {
   if (!runningSleep) {
     const ends = live.filter((e) => e.type === 'sleep' && e.end !== null).map((e) => e.end);
     if (ends.length) awakeMs = now - Math.max(...ends);
+    if (awakeMs > AWAKE_MAX_MS) awakeMs = null;
   }
 
   return { feeding, asleepMs, lastFeed, nextSide, awakeMs, reminder };

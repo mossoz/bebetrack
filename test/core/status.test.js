@@ -14,50 +14,59 @@ import {
 
 const MIN = 60000;
 const NOW = Date.UTC(2026, 10, 15, 8, 0);
-const status = (events) => formatStatus(computeStatus(events, NOW), 'ml');
+const status = (events) => formatStatus(computeStatus(events, NOW));
 
 // "Last fed" counts from the start of the feed (spec), so the feed starts 2h10m before NOW.
 const leftFeed = () => makeBreastManual(NOW - 130 * MIN, 15, 0);
 const sleepEnded40mAgo = () => makeSleepManual(NOW - 100 * MIN, NOW - 40 * MIN);
 
-test('last fed, next side and awake', () => {
-  assert.equal(
-    status([leftFeed(), sleepEnded40mAgo()]),
-    'Last fed 2h 10m ago (left) · next side: right · awake 40m',
-  );
+test('fed, then next side and awake underneath', () => {
+  assert.deepEqual(status([leftFeed(), sleepEnded40mAgo()]), { main: 'Fed 2h 10m ago', detail: 'Next: right · awake 40m' });
 });
 
-test('bottle after a breastfeed', () => {
-  assert.equal(
-    status([leftFeed(), sleepEnded40mAgo(), makeBottle(90, NOW - 45 * MIN)]),
-    'Last fed 45m ago (bottle 90 ml) · next side: right · awake 40m',
-  );
+test('a bottle counts as the last feed', () => {
+  assert.deepEqual(status([leftFeed(), sleepEnded40mAgo(), makeBottle(90, NOW - 45 * MIN)]), {
+    main: 'Fed 45m ago',
+    detail: 'Next: right · awake 40m',
+  });
 });
 
 test('feeding shows the running side clock', () => {
   const feeding = startBreast('L', NOW - 392000);
-  assert.equal(status([leftFeed(), feeding]), 'Feeding · Left 6:32');
-  assert.equal(status([pauseBreast(feeding, NOW - 1000)]), 'Feeding · paused');
+  assert.deepEqual(status([leftFeed(), feeding]), { main: 'Feeding · Left 6:32', detail: '' });
+  assert.deepEqual(status([pauseBreast(feeding, NOW - 1000)]), { main: 'Feeding · paused', detail: '' });
 });
 
-test('asleep', () => {
+test('asleep, with the last feed underneath', () => {
   const s = computeStatus([leftFeed(), startSleep(NOW - 35 * MIN)], NOW);
   assert.equal(s.awakeMs, null);
   assert.equal(s.asleepMs, 35 * MIN);
-  assert.equal(formatStatus(s, 'ml'), 'Asleep 35m');
+  assert.deepEqual(formatStatus(s), { main: 'Asleep 35m', detail: 'Fed 2h 10m ago · next: right' });
 });
 
 test('just now, and no awake part without sleep', () => {
-  assert.equal(status([makeBreastManual(NOW - 30000, 1, 0)]), 'Last fed just now (left) · next side: right');
+  assert.deepEqual(status([makeBreastManual(NOW - 30000, 1, 0)]), { main: 'Fed just now', detail: 'Next: right' });
+});
+
+test('awake time is left out when sleep does not seem to be logged', () => {
+  const longAgo = makeSleepManual(NOW - 6 * 60 * MIN, NOW - 4 * 60 * MIN - MIN); // ended 4h 1m ago
+  assert.equal(computeStatus([leftFeed(), longAgo], NOW).awakeMs, null);
+  assert.deepEqual(status([leftFeed(), longAgo]), { main: 'Fed 2h 10m ago', detail: 'Next: right' });
+  const recent = makeSleepManual(NOW - 6 * 60 * MIN, NOW - 4 * 60 * MIN + MIN); // ended 3h 59m ago
+  assert.equal(computeStatus([leftFeed(), recent], NOW).awakeMs, 4 * 60 * MIN - MIN);
+});
+
+test('only sleep logged', () => {
+  assert.deepEqual(status([sleepEnded40mAgo()]), { main: 'Awake 40m', detail: '' });
 });
 
 test('nothing logged', () => {
-  assert.equal(status([]), 'Nothing logged yet');
+  assert.deepEqual(status([]), { main: 'Nothing logged yet', detail: '' });
 });
 
 test('deleted feeds are ignored', () => {
   const deleted = { ...makeBreastManual(NOW - 60 * MIN, 0, 10), deleted: true };
-  assert.equal(status([leftFeed(), deleted]), 'Last fed 2h 10m ago (left) · next side: right');
+  assert.deepEqual(status([leftFeed(), deleted]), { main: 'Fed 2h 10m ago', detail: 'Next: right' });
 });
 
 test('next side follows the side the last feed ended on', () => {
@@ -65,12 +74,13 @@ test('next side follows the side the last feed ended on', () => {
   assert.equal(s.nextSide, 'L');
 });
 
-// A feed that ended 20m ago with a reminder for 1h 30m after it ended.
+// A feed that started 35m ago and ended 20m ago, with a reminder that is
+// counted start-to-start (35m + 70m = 1h 45m after it started).
 const remindedFeed = () => ({ ...stopBreast(startBreast('L', NOW - 35 * MIN), NOW - 20 * MIN), remindAt: NOW + 70 * MIN });
 
 test('a reminder set after a feed shows until it is due', () => {
   const feed = remindedFeed();
-  assert.deepEqual(computeStatus([feed], NOW).reminder, { id: feed.id, from: NOW - 20 * MIN, at: NOW + 70 * MIN, due: false });
+  assert.deepEqual(computeStatus([feed], NOW).reminder, { id: feed.id, from: NOW - 35 * MIN, at: NOW + 70 * MIN, due: false });
   assert.equal(computeStatus([feed], NOW + 70 * MIN).reminder.due, true);
 });
 

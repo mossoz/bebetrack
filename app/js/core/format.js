@@ -50,25 +50,22 @@ export function formatClock(ms) {
 const SIDE_NAME = { L: 'left', R: 'right' };
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function formatStatus(status, unit) {
+// Two lines for the status card: `main` is the big one, `detail` sits
+// underneath in smaller text ('' when there is nothing to add).
+export function formatStatus(status) {
+  const line = (...parts) => capitalize(parts.filter(Boolean).join(' · '));
   if (status.feeding) {
     const { side, sideMs } = status.feeding;
-    return side ? `Feeding · ${capitalize(SIDE_NAME[side])} ${formatClock(sideMs)}` : 'Feeding · paused';
+    return { main: side ? `Feeding · ${capitalize(SIDE_NAME[side])} ${formatClock(sideMs)}` : 'Feeding · paused', detail: '' };
   }
-  if (status.asleepMs !== null) return `Asleep ${formatDuration(status.asleepMs)}`;
-
-  const parts = [];
   const feed = status.lastFeed;
-  if (feed) {
-    const when = feed.agoMs < MIN ? 'just now' : `${formatDuration(feed.agoMs)} ago`;
-    let detail = '';
-    if (feed.kind === 'breast' && feed.side) detail = ` (${SIDE_NAME[feed.side]})`;
-    if (feed.kind === 'bottle') detail = ` (bottle ${formatAmount(feed.ml, unit)})`;
-    parts.push(`Last fed ${when}${detail}`);
-  }
-  if (status.nextSide) parts.push(`next side: ${SIDE_NAME[status.nextSide]}`);
-  if (status.awakeMs !== null) parts.push(`awake ${formatDuration(status.awakeMs)}`);
-  return parts.length ? capitalize(parts.join(' · ')) : 'Nothing logged yet';
+  const fed = feed ? `fed ${feed.agoMs < MIN ? 'just now' : `${formatDuration(feed.agoMs)} ago`}` : null;
+  const next = status.nextSide ? `next: ${SIDE_NAME[status.nextSide]}` : null;
+  if (status.asleepMs !== null) return { main: `Asleep ${formatDuration(status.asleepMs)}`, detail: line(fed, next) };
+  const awake = status.awakeMs !== null ? `awake ${formatDuration(status.awakeMs)}` : null;
+  if (fed) return { main: line(fed), detail: line(next, awake) };
+  if (awake) return { main: line(awake), detail: '' };
+  return { main: 'Nothing logged yet', detail: '' };
 }
 
 const DIAPER_TEXT = { wet: 'wet', solid: 'solid', both: 'wet + solid' };
