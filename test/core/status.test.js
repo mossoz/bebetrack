@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStatus } from '../../app/js/core/status.js';
+import { computeStatus, REMIND, reminderDefault } from '../../app/js/core/status.js';
 import { formatStatus } from '../../app/js/core/format.js';
 import {
   makeBreastManual,
@@ -107,4 +107,40 @@ test('no reminder unless one was set', () => {
 test('a reminder stays up while baby sleeps', () => {
   const s = computeStatus([remindedFeed(), startSleep(NOW - 10 * MIN)], NOW);
   assert.equal(s.reminder.at, NOW + 70 * MIN);
+});
+
+// Reminder durations are counted from the feed's start.
+const fedWithReminder = (startMs, minutes) => ({ ...makeBreastManual(startMs, 15, 0), remindAt: startMs + minutes * MIN });
+
+test('reminders start at 2h and step by 30 minutes', () => {
+  assert.deepEqual(REMIND, { min: 120, max: 360, step: 30 });
+});
+
+test('the first reminder defaults to 2h', () => {
+  const ev = makeBreastManual(NOW - 20 * MIN, 15, 0);
+  assert.equal(reminderDefault([ev], ev), 120);
+  assert.equal(reminderDefault([leftFeed(), ev], ev), 120);
+});
+
+test('the next reminder starts from the last one used', () => {
+  const earlier = fedWithReminder(NOW - 300 * MIN, 150);
+  const older = fedWithReminder(NOW - 600 * MIN, 210);
+  const ev = makeBreastManual(NOW - 20 * MIN, 15, 0);
+  assert.equal(reminderDefault([older, earlier, ev], ev), 150);
+  // A feed whose reminder was cleared is skipped.
+  assert.equal(reminderDefault([older, { ...earlier, remindAt: null }, ev], ev), 210);
+  assert.equal(reminderDefault([older, { ...earlier, deleted: true }, ev], ev), 210);
+});
+
+test('changing a reminder starts from its own duration', () => {
+  const earlier = fedWithReminder(NOW - 300 * MIN, 150);
+  const ev = fedWithReminder(NOW - 20 * MIN, 240);
+  assert.equal(reminderDefault([earlier, ev], ev), 240);
+});
+
+test('a remembered duration is rounded to a step and kept within range', () => {
+  const ev = makeBreastManual(NOW - 20 * MIN, 15, 0);
+  assert.equal(reminderDefault([fedWithReminder(NOW - 300 * MIN, 60), ev], ev), 120);
+  assert.equal(reminderDefault([fedWithReminder(NOW - 600 * MIN, 420), ev], ev), 360);
+  assert.equal(reminderDefault([fedWithReminder(NOW - 300 * MIN, 160), ev], ev), 150);
 });

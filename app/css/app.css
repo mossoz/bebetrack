@@ -763,29 +763,28 @@ dialog#sheet::backdrop {
   font-weight: 600;
 }
 
-.chip.remind {
+.remind-readout {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 60px;
-  border-radius: 16px;
   color: var(--breast);
+  font-variant-numeric: tabular-nums;
 }
 
-.chip.remind.selected {
-  border-color: currentColor;
-  background: color-mix(in srgb, currentColor 12%, var(--surface-2));
+.remind-duration {
+  font-size: 36px;
+  font-weight: 650;
+  line-height: 1.15;
 }
 
-.chip.remind:disabled {
-  opacity: 0.35;
-}
-
-.chip-time {
+.remind-time {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
+}
+
+.step:disabled {
+  opacity: 0.35;
 }
 
 .field-group {

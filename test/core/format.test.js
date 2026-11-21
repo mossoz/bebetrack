@@ -15,7 +15,6 @@ import {
   formatDayTiles,
   formatReminder,
   formatTime,
-  REMIND_MINUTES,
   formatDayLabel,
   toLocalInput,
   fromLocalInput,
@@ -116,10 +115,6 @@ test('day tiles with nothing logged are marked empty', () => {
   assert.deepEqual(tiles.map((t) => t.empty), [true, true, true, true]);
   assert.equal(tiles[1].value, '0 oz');
   assert.equal(tiles[0].caption, '0 feeds');
-});
-
-test('reminder choices run from 30 minutes to 4 hours in 30-minute steps', () => {
-  assert.deepEqual(REMIND_MINUTES, [30, 60, 90, 120, 150, 180, 210, 240]);
 });
 
 test('formatReminder', () => {

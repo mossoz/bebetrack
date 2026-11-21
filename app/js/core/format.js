@@ -103,9 +103,6 @@ export function formatDayTiles(totals, unit) {
   ];
 }
 
-// Next-feed reminder choices, in minutes after the feed ended.
-export const REMIND_MINUTES = [30, 60, 90, 120, 150, 180, 210, 240];
-
 export function formatReminder(reminder, now) {
   if (reminder.due) return `Feed due · ${formatTime(reminder.at)}`;
   const left = Math.ceil((reminder.at - now) / MIN) * MIN;

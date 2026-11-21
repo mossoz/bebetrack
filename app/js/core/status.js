@@ -53,3 +53,17 @@ export function computeStatus(events, now) {
 
   return { feeding, asleepMs, lastFeed, nextSide, awakeMs, reminder };
 }
+
+// Next-feed reminder choices, in minutes after the feed started.
+export const REMIND = { min: 120, max: 360, step: 30 };
+
+// Where the reminder picker starts: the reminder's own duration when changing
+// one, otherwise the duration of the last reminder used (on either phone),
+// otherwise the 2h minimum. Always a whole step within range.
+export function reminderDefault(events, ev) {
+  const hasReminder = (e) => e.type === 'breast' && !e.deleted && typeof e.remindAt === 'number';
+  const source = hasReminder(ev) ? ev : latestByStart(events.filter((e) => e.id !== ev.id && hasReminder(e)));
+  if (!source) return REMIND.min;
+  const minutes = Math.round((source.remindAt - source.start) / 60000 / REMIND.step) * REMIND.step;
+  return Math.min(REMIND.max, Math.max(REMIND.min, minutes));
+}

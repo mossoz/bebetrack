@@ -20,10 +20,9 @@ import {
   sideTotals,
   currentSide,
 } from '../core/events.js';
-import { computeStatus } from '../core/status.js';
+import { computeStatus, REMIND, reminderDefault } from '../core/status.js';
 import {
   QUICK_AMOUNTS,
-  REMIND_MINUTES,
   STEP,
   ozToMl,
   mlToOz,
@@ -378,36 +377,52 @@ export function createSheets({ dialog, store, session, toast, onUnitChange }) {
 
   // Next-feed reminder, counted start-to-start: from when this feed began.
   // Shown after Stop, and from the reminder bar on the home screen to change
-  // or clear it. Times already past are greyed out.
+  // or clear it. It starts at the last duration used (2h the first time), and
+  // − / + move it in 30-minute steps between 2h and 6h.
   function reminderForm(id) {
     const ev = store.get(id);
     if (!ev || ev.deleted || isRunning(ev)) return close();
     const from = ev.start;
-    const now = Date.now();
     const hasReminder = typeof ev.remindAt === 'number';
+    let minutes = reminderDefault(store.all(), ev);
+
     const apply = async (remindAt, message) => {
       const current = store.get(id);
       close();
       if (current && !current.deleted && !isRunning(current)) await save({ ...current, remindAt }, message);
     };
-    const chips = REMIND_MINUTES.map((minutes) => {
+    const duration = h('span', { class: 'remind-duration' });
+    const time = h('span', { class: 'remind-time' });
+    const step = (d) => () => {
+      minutes = Math.min(REMIND.max, Math.max(REMIND.min, minutes + d));
+      show();
+    };
+    const less = h('button', { class: 'step big', type: 'button', 'aria-label': '30 minutes earlier', onclick: step(-REMIND.step) }, '−');
+    const more = h('button', { class: 'step big', type: 'button', 'aria-label': '30 minutes later', onclick: step(REMIND.step) }, '+');
+    const setButton = h('button', {
+      class: 'btn primary',
+      type: 'button',
+      onclick: () => {
+        const at = from + minutes * MIN;
+        apply(at, `Reminder ${formatTime(at)}`);
+      },
+    }, 'Set reminder');
+    function show() {
       const at = from + minutes * MIN;
-      return h(
-        'button',
-        {
-          class: `chip remind${at === ev.remindAt ? ' selected' : ''}`,
-          type: 'button',
-          disabled: at <= now,
-          onclick: () => apply(at, `Reminder ${formatTime(at)}`),
-        },
-        h('span', { class: 'chip-main' }, formatDuration(minutes * MIN)),
-        h('span', { class: 'chip-time' }, formatTime(at)),
-      );
-    });
+      const passed = at <= Date.now();
+      duration.textContent = formatDuration(minutes * MIN);
+      time.textContent = passed ? `${formatTime(at)} · already passed` : formatTime(at);
+      less.disabled = minutes <= REMIND.min;
+      more.disabled = minutes >= REMIND.max;
+      setButton.disabled = passed;
+    }
+    show();
+
     mount(
       hasReminder ? 'Feed reminder' : 'Remind me?',
       h('p', { class: 'muted' }, `Next feed, counted from the start of this one (${formatTime(from)}).`),
-      h('div', { class: 'chips' }, chips),
+      h('div', { class: 'amount' }, less, h('output', { class: 'remind-readout' }, duration, time), more),
+      setButton,
       hasReminder
         ? h('button', { class: 'btn', type: 'button', onclick: () => apply(null, 'Reminder cleared') }, 'Clear reminder')
         : h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'No reminder'),
